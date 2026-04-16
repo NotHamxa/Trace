@@ -37,3 +37,5 @@ bin/
 /.gradle/
 /build/
 /build/classes/java/main/
+
+CLAUDE.md

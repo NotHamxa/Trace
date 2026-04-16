@@ -40,6 +40,20 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+tasks.register('generateVersionResource') {
+    def outFile = layout.buildDirectory.file('generated/resources/version.properties')
+    outputs.file(outFile)
+    inputs.property('version', project.version)
+    doLast {
+        def f = outFile.get().asFile
+        f.parentFile.mkdirs()
+        f.text = "version=${project.version}\n"
+    }
+}
+
+sourceSets.main.resources.srcDir(tasks.named('generateVersionResource').map { it.outputs.files.singleFile.parentFile })
+processResources.dependsOn('generateVersionResource')
+
 tasks.register('buildDemo', JavaExec) {
     group = 'application'
     description = 'Generates demo_circuit.llb'
@@ -69,12 +83,14 @@ tasks.register('buildExe', Exec) {
 
     executable = "${javaHome}/bin/jpackage"
     args = [
-        '--type', 'app-image',
+        '--type', 'exe',
         '--name', 'LogicLab',
         '--app-version', "${project.version}",
         '--input', installDir.get().asFile.absolutePath,
         '--main-jar', "LogicLab-${project.version}.jar",
         '--main-class', 'com.logiclab.App',
         '--dest', jpackageDir.get().asFile.absolutePath,
+        '--win-shortcut',
+        '--win-menu',
     ]
 }

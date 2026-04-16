@@ -7,6 +7,7 @@ import com.logiclab.ui.StartMenu;
 import com.logiclab.ui.Theme;
 import com.logiclab.ui.TitleBar;
 import com.logiclab.util.RecentProjects;
+import com.logiclab.util.UpdateChecker;
 import javafx.application.Application;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
@@ -86,6 +87,8 @@ public class App extends Application {
         primaryStage.setOnCloseRequest(this::handleWindowClose);
 
         primaryStage.show();
+
+        UpdateChecker.checkAsync();
     }
 
     private void showStartMenu() {

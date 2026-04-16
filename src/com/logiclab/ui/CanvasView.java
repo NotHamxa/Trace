@@ -380,12 +380,14 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Clicked empty space — clear selection.
-        if (selectedComponent != null) {
-            selectedComponent = null;
-            if (onComponentSelected != null) onComponentSelected.accept(null);
-            redraw();
-        }
+        // Clicked empty space — clear selection and start panning.
+        selectedComponent = null;
+        if (onComponentSelected != null) onComponentSelected.accept(null);
+        panning = true;
+        panStartX = e.getX() - panX;
+        panStartY = e.getY() - panY;
+        setCursor(Cursor.MOVE);
+        redraw();
     }
 
     private void handleMouseDragged(MouseEvent e) {
