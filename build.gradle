@@ -1,0 +1,80 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'com.logiclab'
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+javafx {
+    version = '21'
+    modules = ['javafx.controls', 'javafx.graphics']
+}
+
+application {
+    mainClass = 'com.logiclab.App'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+        resources {
+            srcDirs = ['src/resources']
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+tasks.register('buildDemo', JavaExec) {
+    group = 'application'
+    description = 'Generates demo_circuit.llb'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.logiclab.DemoBuilder'
+}
+
+tasks.register('buildIcDemo', JavaExec) {
+    group = 'application'
+    description = 'Generates demo_and_gate.llb'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.logiclab.DemoIcBuilder'
+}
+
+tasks.register('buildExe', Exec) {
+    group = 'distribution'
+    description = 'Packages the application as a Windows .exe using jpackage'
+    dependsOn 'installDist'
+
+    def jpackageDir = layout.buildDirectory.dir('jpackage')
+    def installDir = layout.buildDirectory.dir('install/LogicLab/lib')
+    def javaHome = javaToolchains.launcherFor(java.toolchain).get().metadata.installationPath.asFile.absolutePath
+
+    doFirst {
+        delete jpackageDir
+    }
+
+    executable = "${javaHome}/bin/jpackage"
+    args = [
+        '--type', 'app-image',
+        '--name', 'LogicLab',
+        '--app-version', "${project.version}",
+        '--input', installDir.get().asFile.absolutePath,
+        '--main-jar', "LogicLab-${project.version}.jar",
+        '--main-class', 'com.logiclab.App',
+        '--dest', jpackageDir.get().asFile.absolutePath,
+    ]
+}
