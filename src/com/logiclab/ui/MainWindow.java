@@ -44,10 +44,14 @@ public class MainWindow {
     private Stage stage;
 
     public MainWindow() {
-        this(new Circuit(), null);
+        this(new Circuit(), null, null);
     }
 
     public MainWindow(Circuit initialCircuit, File sourceFile) {
+        this(initialCircuit, sourceFile, null);
+    }
+
+    public MainWindow(Circuit initialCircuit, File sourceFile, StatusBar sharedStatusBar) {
         circuit = initialCircuit != null ? initialCircuit : new Circuit();
         currentFile = sourceFile;
 
@@ -57,7 +61,7 @@ public class MainWindow {
         // Create UI components
         canvasView = new CanvasView(circuit);
         propertiesPanel = new PropertiesPanel();
-        statusBar = new StatusBar();
+        statusBar = sharedStatusBar != null ? sharedStatusBar : new StatusBar();
         toolbar = new Toolbar();
 
         // Controllers
@@ -123,7 +127,7 @@ public class MainWindow {
         root.setLeft(toolboxPanel);
         root.setCenter(canvasView);
         root.setRight(propertiesPanel);
-        root.setBottom(statusBar);
+        // statusBar is shared via App and lives outside this BorderPane.
 
         // Keyboard shortcuts
         root.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);

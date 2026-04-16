@@ -441,7 +441,19 @@ public class CanvasView extends Pane {
 
         if (mode == AppMode.DRAW && dragging && selectedComponent != null) {
             removePinsFromHoles(selectedComponent);
-            double[] snap = snapForPlacement(selectedComponent, wx - dragOffsetX + selectedComponent.getWidth() / 2, wy - dragOffsetY + selectedComponent.getHeight() / 2);
+            double targetCx = wx - dragOffsetX + selectedComponent.getWidth() / 2;
+            double targetCy = wy - dragOffsetY + selectedComponent.getHeight() / 2;
+            if (selectedComponent instanceof ICChip) {
+                Breadboard bb = findNearestBreadboard(targetCx, targetCy);
+                if (bb != null) {
+                    double halfW = selectedComponent.getWidth() / 2;
+                    double minCx = bb.getBoardX() + halfW;
+                    double maxCx = bb.getBoardX() + bb.getBoardWidth() - halfW;
+                    targetCx = Math.max(minCx, Math.min(maxCx, targetCx));
+                    targetCy = bb.getBoardY() + bb.getBoardHeight() / 2;
+                }
+            }
+            double[] snap = snapForPlacement(selectedComponent, targetCx, targetCy);
             selectedComponent.setPosition(snap[0], snap[1]);
             insertPinsIntoHoles(selectedComponent);
             if (onComponentSelected != null) onComponentSelected.accept(selectedComponent);

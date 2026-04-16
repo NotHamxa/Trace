@@ -1,20 +1,17 @@
 package com.logiclab.util;
 
 import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,7 +20,21 @@ public final class UpdateChecker {
     private static final String REPO = "NotHamxa/LogicLab";
     private static final String API_URL = "https://api.github.com/repos/" + REPO + "/releases/latest";
 
-    private UpdateChecker() {}
+    public interface Listener {
+        void onAvailable(String version);
+        void onProgress(double fraction);
+        void onReady(Path installer);
+        void onError(String message);
+    }
+
+    private final Listener listener;
+    private volatile String installerUrl;
+    private volatile String latestVersion;
+    private volatile Path downloadedInstaller;
+
+    public UpdateChecker(Listener listener) {
+        this.listener = listener;
+    }
 
     public static String currentVersion() {
         try (InputStream in = UpdateChecker.class.getResourceAsStream("/version.properties")) {
@@ -36,13 +47,13 @@ public final class UpdateChecker {
         }
     }
 
-    public static void checkAsync() {
-        Thread t = new Thread(UpdateChecker::checkBlocking, "update-checker");
+    public void checkAsync() {
+        Thread t = new Thread(this::checkBlocking, "update-checker");
         t.setDaemon(true);
         t.start();
     }
 
-    private static void checkBlocking() {
+    private void checkBlocking() {
         try {
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(10))
@@ -57,35 +68,29 @@ public final class UpdateChecker {
 
             String body = resp.body();
             String tag = jsonField(body, "tag_name");
-            String installerUrl = findInstallerAsset(body);
-            if (tag == null || installerUrl == null) return;
+            String exe = findInstallerAsset(body);
+            if (tag == null || exe == null) return;
 
             String latest = stripV(tag);
-            String current = currentVersion();
-            if (compareVersions(latest, current) <= 0) return;
+            if (compareVersions(latest, currentVersion()) <= 0) return;
 
-            Platform.runLater(() -> promptAndUpdate(latest, installerUrl));
-        } catch (Exception ignored) {
-            // Network failure — silently skip; user can still use the app.
+            this.latestVersion = latest;
+            this.installerUrl = exe;
+            Platform.runLater(() -> listener.onAvailable(latest));
+        } catch (Exception e) {
+            // Silent — no network or rate-limited; user can still use the app.
         }
     }
 
-    private static void promptAndUpdate(String latest, String installerUrl) {
-        Alert a = new Alert(Alert.AlertType.CONFIRMATION,
-                "LogicLab " + latest + " is available (you have " + currentVersion() + ").\n\n" +
-                        "Download and install now? The app will close while the installer runs.",
-                ButtonType.YES, ButtonType.NO);
-        a.setTitle("Update available");
-        a.setHeaderText("New version available");
-        Optional<ButtonType> choice = a.showAndWait();
-        if (choice.isEmpty() || choice.get() != ButtonType.YES) return;
-
-        Thread t = new Thread(() -> downloadAndLaunch(installerUrl), "update-downloader");
-        t.setDaemon(false);
+    /** Begin downloading the installer in a background thread. */
+    public void startDownload() {
+        if (installerUrl == null) return;
+        Thread t = new Thread(this::downloadBlocking, "update-downloader");
+        t.setDaemon(true);
         t.start();
     }
 
-    private static void downloadAndLaunch(String installerUrl) {
+    private void downloadBlocking() {
         try {
             Path tmp = Files.createTempFile("LogicLab-installer-", ".exe");
             HttpClient client = HttpClient.newBuilder()
@@ -93,20 +98,52 @@ public final class UpdateChecker {
                     .build();
             HttpRequest req = HttpRequest.newBuilder(URI.create(installerUrl)).GET().build();
             HttpResponse<InputStream> resp = client.send(req, HttpResponse.BodyHandlers.ofInputStream());
-            if (resp.statusCode() != 200) return;
-            try (InputStream in = resp.body()) {
-                Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+            if (resp.statusCode() != 200) {
+                Platform.runLater(() -> listener.onError("HTTP " + resp.statusCode()));
+                return;
             }
-            new ProcessBuilder(tmp.toAbsolutePath().toString()).start();
-            Platform.exit();
-        } catch (Exception e) {
+
+            long total = resp.headers().firstValueAsLong("Content-Length").orElse(-1L);
+            try (InputStream in = resp.body();
+                 OutputStream out = Files.newOutputStream(tmp)) {
+                byte[] buf = new byte[64 * 1024];
+                long read = 0;
+                int n;
+                long lastTick = 0;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                    read += n;
+                    long now = System.currentTimeMillis();
+                    if (total > 0 && now - lastTick > 100) {
+                        double frac = (double) read / (double) total;
+                        Platform.runLater(() -> listener.onProgress(frac));
+                        lastTick = now;
+                    }
+                }
+            }
+
+            downloadedInstaller = tmp;
             Platform.runLater(() -> {
-                Alert err = new Alert(Alert.AlertType.ERROR, "Update failed: " + e.getMessage(), ButtonType.OK);
-                err.setHeaderText("Could not install update");
-                err.showAndWait();
+                listener.onProgress(1.0);
+                listener.onReady(tmp);
             });
+        } catch (Exception e) {
+            Platform.runLater(() -> listener.onError(e.getMessage()));
         }
     }
+
+    /** Launch the downloaded installer and exit the app. */
+    public void installAndExit() {
+        if (downloadedInstaller == null) return;
+        try {
+            new ProcessBuilder(downloadedInstaller.toAbsolutePath().toString()).start();
+            Platform.exit();
+        } catch (IOException e) {
+            Platform.runLater(() -> listener.onError(e.getMessage()));
+        }
+    }
+
+    public String getLatestVersion() { return latestVersion; }
 
     private static String findInstallerAsset(String json) {
         Matcher m = Pattern.compile("\"browser_download_url\"\\s*:\\s*\"([^\"]+\\.exe)\"").matcher(json);

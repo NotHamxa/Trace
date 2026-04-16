@@ -4,6 +4,7 @@ import com.logiclab.controller.FileController;
 import com.logiclab.model.Circuit;
 import com.logiclab.ui.MainWindow;
 import com.logiclab.ui.StartMenu;
+import com.logiclab.ui.StatusBar;
 import com.logiclab.ui.Theme;
 import com.logiclab.ui.TitleBar;
 import com.logiclab.util.RecentProjects;
@@ -31,6 +32,7 @@ public class App extends Application {
     private StartMenu startMenu;
     private MainWindow mainWindow;
     private TitleBar titleBar;
+    private StatusBar statusBar;
     private StackPane contentHolder;
 
     @Override
@@ -43,8 +45,9 @@ public class App extends Application {
         VBox.setVgrow(contentHolder, Priority.ALWAYS);
 
         titleBar = new TitleBar(primaryStage, this::onCloseRequested);
+        statusBar = new StatusBar();
 
-        VBox outer = new VBox(titleBar, contentHolder);
+        VBox outer = new VBox(titleBar, contentHolder, statusBar);
         outer.setStyle("-fx-background-color: " + Theme.BG_EDITOR +
                 "; -fx-border-color: " + Theme.BORDER_STRONG + "; -fx-border-width: 1;");
 
@@ -88,7 +91,28 @@ public class App extends Application {
 
         primaryStage.show();
 
-        UpdateChecker.checkAsync();
+        startUpdateChecker();
+    }
+
+    private void startUpdateChecker() {
+        final UpdateChecker[] holder = new UpdateChecker[1];
+        UpdateChecker checker = new UpdateChecker(new UpdateChecker.Listener() {
+            @Override public void onAvailable(String version) {
+                statusBar.showUpdateAvailable(version, () -> holder[0].startDownload());
+            }
+            @Override public void onProgress(double fraction) {
+                statusBar.showUpdateProgress(fraction);
+            }
+            @Override public void onReady(java.nio.file.Path installer) {
+                statusBar.showUpdateReady(() -> holder[0].installAndExit());
+            }
+            @Override public void onError(String message) {
+                statusBar.setWarning("Update failed: " + message);
+                statusBar.clearUpdate();
+            }
+        });
+        holder[0] = checker;
+        checker.checkAsync();
     }
 
     private void showStartMenu() {
@@ -116,7 +140,7 @@ public class App extends Application {
     }
 
     private void openProject(Circuit circuit, File file) {
-        mainWindow = new MainWindow(circuit, file);
+        mainWindow = new MainWindow(circuit, file, statusBar);
         mainWindow.setStage(primaryStage);
         mainWindow.setOnCloseProject(this::showStartMenu);
         contentHolder.getChildren().setAll(mainWindow.getRoot());

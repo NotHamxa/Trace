@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.logiclab'
-version = '1.0'
+version = '0.0.1'
 
 repositories {
     mavenCentral()
@@ -88,8 +88,11 @@ tasks.register('buildExe', Exec) {
         '--app-version', "${project.version}",
         '--input', installDir.get().asFile.absolutePath,
         '--main-jar', "LogicLab-${project.version}.jar",
-        '--main-class', 'com.logiclab.App',
+        '--main-class', 'com.logiclab.Launcher',
         '--dest', jpackageDir.get().asFile.absolutePath,
+        '--icon', file('src/resources/icons/icon.ico').absolutePath,
+        '--java-options', '--module-path=$APPDIR',
+        '--java-options', '--add-modules=javafx.controls,javafx.graphics',
         '--win-shortcut',
         '--win-menu',
     ]
