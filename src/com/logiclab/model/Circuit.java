@@ -1,6 +1,7 @@
 package com.logiclab.model;
 
 import com.logiclab.exceptions.OscillationException;
+import com.logiclab.model.flipflops.FlipFlop;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -30,6 +31,11 @@ public class Circuit implements Serializable {
         this.wires = new ArrayList<>();
         this.name = "Untitled";
         this.modified = false;
+    }
+
+    /** Replaces the breadboard list wholesale — used by the JSON loader. */
+    public void replaceBreadboards(List<Breadboard> bbs) {
+        this.breadboards = new ArrayList<>(bbs);
     }
 
     // === Breadboard Management ===
@@ -96,9 +102,10 @@ public class Circuit implements Serializable {
         // 3. Propagate through wires and nets
         propagateNets();
 
-        // 4. Simulate input components
+        // 4. Simulate input components (interactive inputs + sub-circuit input ports)
         for (Component c : components) {
-            if (c instanceof InputComponent) {
+            if (c instanceof InputComponent
+                    || c instanceof com.logiclab.model.ports.InputPort) {
                 c.simulate();
             }
         }
@@ -114,7 +121,7 @@ public class Circuit implements Serializable {
         while (changed && iteration < maxIterations) {
             changed = false;
             for (Component c : components) {
-                if (c instanceof ICChip) {
+                if (c instanceof ICChip || c instanceof FlipFlop || c instanceof com.logiclab.model.subcircuit.SubCircuitInstance) {
                     Map<Pin, LogicState> before = captureOutputStates(c);
                     c.simulate();
                     if (outputsChanged(c, before)) {
@@ -133,7 +140,7 @@ public class Circuit implements Serializable {
                   .append(maxIterations).append(" iterations: ");
             boolean first = true;
             for (Component c : components) {
-                if (c instanceof ICChip) {
+                if (c instanceof ICChip || c instanceof FlipFlop || c instanceof com.logiclab.model.subcircuit.SubCircuitInstance) {
                     Map<Pin, LogicState> before = captureOutputStates(c);
                     c.simulate();
                     propagateNets();
@@ -284,21 +291,12 @@ public class Circuit implements Serializable {
         }
     }
 
-    // === Save/Load ===
+    // === Save/Load (JSON) ===
     public void saveToFile(File file) throws IOException {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
-            oos.writeObject(this);
-        }
+        com.logiclab.io.CircuitJsonWriter.write(this, file);
     }
 
-    public static Circuit loadFromFile(File file) throws IOException, ClassNotFoundException {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            Circuit circuit = (Circuit) ois.readObject();
-            // Restore transient pin ownership references
-            for (Component c : circuit.components) {
-                c.restorePinOwnership();
-            }
-            return circuit;
-        }
+    public static Circuit loadFromFile(File file) throws IOException {
+        return com.logiclab.io.CircuitJsonReader.read(file);
     }
 }

@@ -110,6 +110,17 @@ public class Toolbar extends HBox {
         menuBtn.setOnAction(e -> { if (onCloseProject != null) onCloseProject.run(); });
     }
 
+    /**
+     * Reshapes the toolbar for sub-circuit editing: hides the Load and
+     * "Save as Sub-Circuit" buttons (both meaningless in that mode).
+     */
+    public void setSubCircuitMode(boolean subCircuit) {
+        loadBtn.setVisible(!subCircuit);
+        loadBtn.setManaged(!subCircuit);
+        simBtn.setVisible(!subCircuit);
+        simBtn.setManaged(!subCircuit);
+    }
+
     /** Enables/disables the undo/redo buttons (host should call this on state change). */
     public void setUndoRedoEnabled(boolean canUndo, boolean canRedo) {
         undoBtn.setDisable(!canUndo);

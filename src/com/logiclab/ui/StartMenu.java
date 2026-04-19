@@ -1,6 +1,11 @@
 package com.logiclab.ui;
 
+import com.logiclab.io.SubCircuitIO;
+import com.logiclab.io.SubCircuitLibrary;
 import com.logiclab.model.Circuit;
+import com.logiclab.model.subcircuit.SubCircuitDefinition;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import com.logiclab.util.DemoLibrary;
 import com.logiclab.util.DemoLibrary.Demo;
 import com.logiclab.util.RecentProjects;
@@ -53,19 +58,26 @@ public class StartMenu {
     // Nav items
     private Label projectsNav;
     private Label demosNav;
+    private Label subcircuitsNav;
 
     // Main panels
     private Pane projectsPanel;
     private Pane demosPanel;
+    private Pane subcircuitsPanel;
 
     // Projects panel state
     private ListView<File> recentList;
     private TextField searchField;
 
+    // Subcircuits panel state
+    private ListView<SubCircuitDefinition> subcircuitList;
+
     // Callbacks
     private Runnable onNewProject;
     private Consumer<File> onOpenProject;
     private Consumer<Circuit> onOpenDemo;
+    private Runnable onNewSubCircuit;
+    private Consumer<SubCircuitDefinition> onOpenSubCircuit;
     private Stage stage;
 
     public StartMenu() {
@@ -74,6 +86,7 @@ public class StartMenu {
 
         projectsPanel = buildProjectsPanel();
         demosPanel = buildDemosPanel();
+        subcircuitsPanel = buildSubcircuitsPanel();
 
         root.setLeft(buildSidebar());
         showProjects();
@@ -95,8 +108,9 @@ public class StartMenu {
 
         projectsNav = buildNavItem("Projects", this::showProjects);
         demosNav = buildNavItem("Demos", this::showDemos);
+        subcircuitsNav = buildNavItem("Subcircuits", this::showSubcircuits);
 
-        VBox nav = new VBox(2, projectsNav, demosNav);
+        VBox nav = new VBox(2, projectsNav, demosNav, subcircuitsNav);
         nav.setPadding(new Insets(4, 8, 8, 8));
 
         VBox sidebar = new VBox(head, nav);
@@ -134,7 +148,7 @@ public class StartMenu {
     }
 
     private void selectNav(Label selected) {
-        for (Label l : new Label[]{projectsNav, demosNav}) {
+        for (Label l : new Label[]{projectsNav, demosNav, subcircuitsNav}) {
             if (l == selected) {
                 l.setUserData("selected");
                 l.setStyle("-fx-text-fill: " + TEXT_1 + "; -fx-background-radius: 6; " +
@@ -155,6 +169,12 @@ public class StartMenu {
     private void showDemos() {
         selectNav(demosNav);
         root.setCenter(demosPanel);
+    }
+
+    private void showSubcircuits() {
+        selectNav(subcircuitsNav);
+        refreshSubcircuits();
+        root.setCenter(subcircuitsPanel);
     }
 
     // ---------- projects panel ----------
@@ -360,6 +380,163 @@ public class StartMenu {
         };
     }
 
+    // ---------- subcircuits panel ----------
+
+    private VBox buildSubcircuitsPanel() {
+        VBox panel = new VBox();
+        panel.setStyle("-fx-background-color: " + BG_MAIN + ";");
+        panel.setPadding(new Insets(28, 40, 28, 40));
+        panel.setSpacing(18);
+
+        Label title = new Label("Subcircuits");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.setStyle("-fx-text-fill: " + TEXT_1 + ";");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button newBtn = buildPrimaryButton("New Subcircuit");
+        newBtn.setOnAction(e -> { if (onNewSubCircuit != null) onNewSubCircuit.run(); });
+
+        Button loadBtn = buildSecondaryButton("Load Subcircuit");
+        loadBtn.setOnAction(e -> importSubcircuit());
+
+        HBox headerRow = new HBox(10, title, spacer, loadBtn, newBtn);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label hint = new Label("Reusable building blocks with Input/Output ports. Double-click to edit.");
+        hint.setFont(Font.font("Segoe UI", 12));
+        hint.setStyle("-fx-text-fill: " + TEXT_2 + ";");
+
+        subcircuitList = new ListView<>();
+        subcircuitList.setStyle(
+                "-fx-background-color: " + BG_MAIN + ";" +
+                "-fx-control-inner-background: " + BG_MAIN + ";" +
+                "-fx-background-insets: 0;" +
+                "-fx-padding: 0;"
+        );
+        Label empty = new Label("No subcircuits yet — click \u201CNew Subcircuit\u201D to create one.");
+        empty.setFont(Font.font("Segoe UI", 13));
+        empty.setStyle("-fx-text-fill: " + TEXT_2 + ";");
+        subcircuitList.setPlaceholder(empty);
+        subcircuitList.setCellFactory(lv -> buildSubcircuitCell());
+        subcircuitList.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                SubCircuitDefinition d = subcircuitList.getSelectionModel().getSelectedItem();
+                if (d != null && onOpenSubCircuit != null) onOpenSubCircuit.accept(d);
+            }
+        });
+        VBox.setVgrow(subcircuitList, Priority.ALWAYS);
+
+        panel.getChildren().addAll(headerRow, hint, subcircuitList);
+        return panel;
+    }
+
+    private ListCell<SubCircuitDefinition> buildSubcircuitCell() {
+        return new ListCell<SubCircuitDefinition>() {
+            private final Label thumb = new Label();
+            private final Label name = new Label();
+            private final Label id = new Label();
+            private final VBox textBox = new VBox(2, name, id);
+            private final Region rowSpacer = new Region();
+            private final Button exportBtn = buildSecondaryButton("Export");
+            private final HBox row = new HBox(12, thumb, textBox, rowSpacer, exportBtn);
+
+            {
+                thumb.setPrefSize(36, 36);
+                thumb.setMinSize(36, 36);
+                thumb.setAlignment(Pos.CENTER);
+                thumb.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                thumb.setText("SC");
+                thumb.setStyle("-fx-background-color: #4a3a6e; -fx-text-fill: " + TEXT_1 +
+                        "; -fx-background-radius: 6;");
+
+                name.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 13));
+                name.setStyle("-fx-text-fill: " + TEXT_1 + ";");
+                id.setFont(Font.font("Segoe UI", 11));
+                id.setStyle("-fx-text-fill: " + TEXT_2 + ";");
+
+                HBox.setHgrow(rowSpacer, Priority.ALWAYS);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(8, 10, 8, 10));
+            }
+
+            @Override
+            protected void updateItem(SubCircuitDefinition d, boolean empty) {
+                super.updateItem(d, empty);
+                if (empty || d == null) {
+                    setGraphic(null);
+                    setText(null);
+                    setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+                    setOnMouseEntered(null);
+                    setOnMouseExited(null);
+                    exportBtn.setOnAction(null);
+                } else {
+                    name.setText(d.getName());
+                    id.setText(d.getId());
+                    exportBtn.setOnAction(e -> exportSubcircuit(d));
+                    setGraphic(row);
+                    setText(null);
+                    applyRowStyle(this, isSelected(), false);
+                    setOnMouseEntered(e -> applyRowStyle(this, isSelected(), true));
+                    setOnMouseExited(e -> applyRowStyle(this, isSelected(), false));
+                }
+            }
+        };
+    }
+
+    private void exportSubcircuit(SubCircuitDefinition def) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Export Subcircuit");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("LogicLab Sub-Circuit", "*.lls"));
+        chooser.setInitialFileName(def.getId() + ".lls");
+        File out = chooser.showSaveDialog(stage);
+        if (out == null) return;
+        try {
+            SubCircuitIO.write(def, System.getProperty("user.name"), out);
+        } catch (java.io.IOException ex) {
+            new Alert(Alert.AlertType.ERROR, "Export failed: " + ex.getMessage(), ButtonType.OK).showAndWait();
+        }
+    }
+
+    private void importSubcircuit() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Load Subcircuit");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("LogicLab Sub-Circuit", "*.lls"));
+        File in = chooser.showOpenDialog(stage);
+        if (in == null) return;
+        SubCircuitDefinition def;
+        try {
+            def = SubCircuitIO.read(in);
+        } catch (java.io.IOException ex) {
+            new Alert(Alert.AlertType.ERROR, "Load failed: " + ex.getMessage(), ButtonType.OK).showAndWait();
+            return;
+        }
+        File existing = SubCircuitLibrary.fileFor(def.getId());
+        if (existing.exists()) {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "A subcircuit with id \"" + def.getId() + "\" already exists. Overwrite?",
+                    ButtonType.YES, ButtonType.NO);
+            confirm.setHeaderText("Subcircuit already exists");
+            java.util.Optional<ButtonType> r = confirm.showAndWait();
+            if (r.isEmpty() || r.get() != ButtonType.YES) return;
+        }
+        try {
+            SubCircuitLibrary.save(def, System.getProperty("user.name"));
+            refreshSubcircuits();
+        } catch (java.io.IOException ex) {
+            new Alert(Alert.AlertType.ERROR, "Save failed: " + ex.getMessage(), ButtonType.OK).showAndWait();
+        }
+    }
+
+    public void refreshSubcircuits() {
+        if (subcircuitList == null) return;
+        SubCircuitLibrary.reload();
+        subcircuitList.getItems().setAll(SubCircuitLibrary.all());
+    }
+
     // ---------- shared helpers ----------
 
     private static void applyRowStyle(ListCell<?> cell, boolean selected, boolean hover) {
@@ -439,4 +616,6 @@ public class StartMenu {
     public void setOnNewProject(Runnable r) { this.onNewProject = r; }
     public void setOnOpenProject(Consumer<File> c) { this.onOpenProject = c; }
     public void setOnOpenDemo(Consumer<Circuit> c) { this.onOpenDemo = c; }
+    public void setOnNewSubCircuit(Runnable r) { this.onNewSubCircuit = r; }
+    public void setOnOpenSubCircuit(Consumer<SubCircuitDefinition> c) { this.onOpenSubCircuit = c; }
 }

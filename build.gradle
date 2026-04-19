@@ -10,6 +10,10 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)

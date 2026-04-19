@@ -5,6 +5,8 @@ import com.logiclab.model.input.DIPSwitch;
 import com.logiclab.model.input.ToggleSwitch;
 import com.logiclab.model.output.LED;
 import com.logiclab.model.output.LightBar;
+import com.logiclab.model.ports.InputPort;
+import com.logiclab.model.ports.OutputPort;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -179,6 +181,16 @@ public class TestTablePanel extends VBox {
                     String label = (tag != null && !tag.isEmpty()) ? tag : "LB" + ledIdx + "[" + i + "]";
                     outputs.add(new SignalInfo(c, i, label, false));
                 }
+                ledIdx++;
+            } else if (c instanceof InputPort ip) {
+                String lbl = (ip.getPortLabel() != null && !ip.getPortLabel().isEmpty())
+                        ? ip.getPortLabel() : "IN" + swIdx;
+                inputs.add(new SignalInfo(c, -1, lbl, true));
+                swIdx++;
+            } else if (c instanceof OutputPort op) {
+                String lbl = (op.getPortLabel() != null && !op.getPortLabel().isEmpty())
+                        ? op.getPortLabel() : "OUT" + ledIdx;
+                outputs.add(new SignalInfo(c, -1, lbl, false));
                 ledIdx++;
             }
         }
@@ -394,6 +406,8 @@ public class TestTablePanel extends VBox {
                     ((ToggleSwitch) sig.component).setState(high);
                 } else if (sig.component instanceof DIPSwitch) {
                     ((DIPSwitch) sig.component).setSwitch(sig.bitIndex, high);
+                } else if (sig.component instanceof InputPort ip) {
+                    ip.setExternalState(high ? LogicState.HIGH : LogicState.LOW);
                 }
             }
 
@@ -416,6 +430,9 @@ public class TestTablePanel extends VBox {
                     actual = ((LED) sig.component).isActive() ? LogicState.HIGH : LogicState.LOW;
                 } else if (sig.component instanceof LightBar) {
                     LogicState raw = ((LightBar) sig.component).getPin("IN" + sig.bitIndex).getState();
+                    actual = (raw == LogicState.HIGH) ? LogicState.HIGH : LogicState.LOW;
+                } else if (sig.component instanceof OutputPort op) {
+                    LogicState raw = op.readState();
                     actual = (raw == LogicState.HIGH) ? LogicState.HIGH : LogicState.LOW;
                 } else {
                     actual = LogicState.LOW;

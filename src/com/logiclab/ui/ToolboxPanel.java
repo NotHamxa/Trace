@@ -1,11 +1,16 @@
 package com.logiclab.ui;
 
+import com.logiclab.io.SubCircuitLibrary;
 import com.logiclab.model.Component;
 import com.logiclab.model.chips.*;
+import com.logiclab.model.flipflops.*;
 import com.logiclab.model.input.*;
 import com.logiclab.model.output.*;
 import com.logiclab.model.passive.*;
+import com.logiclab.model.ports.*;
 import com.logiclab.model.power.*;
+import com.logiclab.model.subcircuit.SubCircuitDefinition;
+import com.logiclab.model.subcircuit.SubCircuitInstance;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -51,10 +56,21 @@ public class ToolboxPanel extends ScrollPane {
     // The VBox that currently receives new items (the body of the latest category).
     private VBox currentCategoryBody;
 
+    // Kept as a field so "Save as Sub-Circuit" can refresh the list dynamically.
+    private VBox subCircuitsBody;
+
     public ToolboxPanel(Consumer<Component> onComponentSelected,
                         Consumer<Color> onWireToolSelected,
                         Runnable onSelectMode,
                         Runnable onAddBreadboard) {
+        this(onComponentSelected, onWireToolSelected, onSelectMode, onAddBreadboard, false);
+    }
+
+    public ToolboxPanel(Consumer<Component> onComponentSelected,
+                        Consumer<Color> onWireToolSelected,
+                        Runnable onSelectMode,
+                        Runnable onAddBreadboard,
+                        boolean subCircuitMode) {
         this.onComponentSelected = onComponentSelected;
         this.onWireToolSelected = onWireToolSelected;
         this.onSelectMode = onSelectMode;
@@ -89,18 +105,33 @@ public class ToolboxPanel extends ScrollPane {
         addDraggableItem("AND3 (7411)", ANDGate7411::new);
         addDraggableItem("NAND3 (7410)", NANDGate7410::new);
         addDraggableItem("NOR3 (7427)", NORGate7427::new);
+        addDraggableItem("4-Bit Adder (7483)", FourBitAdder7483::new);
 
-        addCategory("Input");
-        addDraggableItem("Toggle Switch", ToggleSwitch::new);
-        addDraggableItem("Push Button", PushButton::new);
-        addDraggableItem("DIP Switch", DIPSwitch::new);
+        addCategory("Flip Flops");
+        addDraggableItem("SR Flip-Flop", SRFlipFlop::new);
 
-        addCategory("Output");
-        addDraggableItem("LED (Red)", () -> new LED(Color.RED));
-        addDraggableItem("LED (Green)", () -> new LED(Color.GREEN));
-        addDraggableItem("7-Seg Display", SevenSegmentDisplay::new);
-        addDraggableItem("Light Bar", LightBar::new);
-        addDraggableItem("BCD Display", BinaryToBCDDisplay::new);
+        if (subCircuitMode) {
+            addCategory("Ports");
+            addDraggableItem("Input Port", () -> new InputPort("IN"));
+            addDraggableItem("Output Port", () -> new OutputPort("OUT"));
+        } else {
+            // "Sub-Circuits" — dynamically populated from the user library.
+            addCategoryHeader("Sub-Circuits");
+            subCircuitsBody = currentCategoryBody;
+            refreshSubCircuits();
+
+            addCategory("Input");
+            addDraggableItem("Toggle Switch", ToggleSwitch::new);
+            addDraggableItem("Push Button", PushButton::new);
+            addDraggableItem("DIP Switch", DIPSwitch::new);
+
+            addCategory("Output");
+            addDraggableItem("LED (Red)", () -> new LED(Color.RED));
+            addDraggableItem("LED (Green)", () -> new LED(Color.GREEN));
+            addDraggableItem("7-Seg Display", SevenSegmentDisplay::new);
+            addDraggableItem("Light Bar", LightBar::new);
+            addDraggableItem("BCD Display", BinaryToBCDDisplay::new);
+        }
 
         addCategory("Power");
         addDraggableItem("5V Supply", PowerSupply5V::new);
@@ -139,6 +170,11 @@ public class ToolboxPanel extends ScrollPane {
     }
 
     private void addCategory(String name) {
+        addCategoryHeader(name);
+    }
+
+    /** Same as {@link #addCategory} but returns the header label. */
+    private Label addCategoryHeader(String name) {
         VBox body = new VBox();
         body.setSpacing(4);
 
@@ -156,6 +192,28 @@ public class ToolboxPanel extends ScrollPane {
         content.getChildren().add(header);
         content.getChildren().add(body);
         currentCategoryBody = body;
+        return header;
+    }
+
+    /** Rebuilds the Sub-Circuits category from the on-disk library. */
+    public void refreshSubCircuits() {
+        if (subCircuitsBody == null) return;
+        SubCircuitLibrary.reload();
+        VBox prev = currentCategoryBody;
+        currentCategoryBody = subCircuitsBody;
+        subCircuitsBody.getChildren().clear();
+        java.util.List<SubCircuitDefinition> defs = SubCircuitLibrary.all();
+        if (defs.isEmpty()) {
+            Label empty = new Label("(none yet)");
+            empty.setStyle("-fx-text-fill: " + Theme.TEXT_SECONDARY + "; -fx-font-size: 10; -fx-padding: 2 0 0 2;");
+            subCircuitsBody.getChildren().add(empty);
+        } else {
+            for (SubCircuitDefinition def : defs) {
+                String ref = def.getId();
+                addDraggableItem(def.getName(), () -> new SubCircuitInstance(ref, SubCircuitLibrary.get(ref)));
+            }
+        }
+        currentCategoryBody = prev;
     }
 
     private Button addDraggableItem(String name, Supplier<Component> factory) {

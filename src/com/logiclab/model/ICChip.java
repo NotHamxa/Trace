@@ -10,30 +10,38 @@ import java.util.List;
 
 public abstract class ICChip extends Component {
     protected boolean powered;
+    protected final int pinCount;
+    protected final int vccPin;
+    protected final int gndPin;
 
     public ICChip(String name) {
-        super(name, 140, 40);
+        this(name, 14, 14, 7);
+    }
+
+    public ICChip(String name, int pinCount, int vccPin, int gndPin) {
+        super(name, pinCount * 10, 40);
+        this.pinCount = pinCount;
+        this.vccPin = vccPin;
+        this.gndPin = gndPin;
         initPins();
     }
 
     private void initPins() {
-        // 14-pin DIP: pins 1-7 on the left, pins 8-14 on the right
-        for (int i = 1; i <= 7; i++) {
+        int half = pinCount / 2;
+        // Bottom row: pins 1..half (left to right)
+        for (int i = 1; i <= half; i++) {
             PinType type;
-            if (i == 7) {
-                type = PinType.GROUND;
-            } else {
-                type = getDefaultPinType(i);
-            }
+            if (i == gndPin) type = PinType.GROUND;
+            else if (i == vccPin) type = PinType.POWER;
+            else type = getDefaultPinType(i);
             addPin(new Pin(String.valueOf(i), type, this));
         }
-        for (int i = 8; i <= 14; i++) {
+        // Top row: pins (half+1)..pinCount
+        for (int i = half + 1; i <= pinCount; i++) {
             PinType type;
-            if (i == 14) {
-                type = PinType.POWER;
-            } else {
-                type = getDefaultPinType(i);
-            }
+            if (i == vccPin) type = PinType.POWER;
+            else if (i == gndPin) type = PinType.GROUND;
+            else type = getDefaultPinType(i);
             addPin(new Pin(String.valueOf(i), type, this));
         }
     }
@@ -47,16 +55,17 @@ public abstract class ICChip extends Component {
     protected void updatePinPositions() {
         double pinSpacing = 20;
         double startX = getX() + 10;
-        // Bottom row: pins 1-7 (left to right)
-        for (int i = 0; i < 7; i++) {
+        int half = pinCount / 2;
+        // Bottom row: pins 1..half (left to right)
+        for (int i = 0; i < half; i++) {
             Pin p = getPin(String.valueOf(i + 1));
             if (p != null) {
                 p.setPosition(startX + i * pinSpacing, getY() + getHeight());
             }
         }
-        // Top row: pins 14-8 (left to right → pin 14 leftmost, pin 8 rightmost)
-        for (int i = 0; i < 7; i++) {
-            Pin p = getPin(String.valueOf(14 - i));
+        // Top row: highest pin leftmost, (half+1) rightmost
+        for (int i = 0; i < half; i++) {
+            Pin p = getPin(String.valueOf(pinCount - i));
             if (p != null) {
                 p.setPosition(startX + i * pinSpacing, getY());
             }
@@ -65,8 +74,8 @@ public abstract class ICChip extends Component {
 
     @Override
     public void simulate() {
-        powered = (getPin("14").getState() == LogicState.HIGH
-                && getPin("7").getState() == LogicState.LOW);
+        powered = (getPin(String.valueOf(vccPin)).getState() == LogicState.HIGH
+                && getPin(String.valueOf(gndPin)).getState() == LogicState.LOW);
 
         if (!powered) {
             for (Pin p : getOutputPins()) {
@@ -79,6 +88,10 @@ public abstract class ICChip extends Component {
 
     protected abstract void computeGates();
     protected abstract List<Pin> getOutputPins();
+
+    public int getPinCount() {
+        return pinCount;
+    }
 
     /**
      * Returns a human-readable description of this IC's gate routing.
@@ -122,8 +135,9 @@ public abstract class ICChip extends Component {
         double startX = x + 10;
         gc.setFont(Font.font("Monospaced", 8));
 
-        // Bottom pins (1-7). No leg stroke — just the pin state dot + label.
-        for (int i = 0; i < 7; i++) {
+        int half = pinCount / 2;
+        // Bottom pins (1..half). No leg stroke — just the pin state dot + label.
+        for (int i = 0; i < half; i++) {
             Pin p = getPin(String.valueOf(i + 1));
             if (p != null) {
                 double px = startX + i * pinSpacing;
@@ -134,9 +148,9 @@ public abstract class ICChip extends Component {
             }
         }
 
-        // Top pins (14 down to 8, left to right). No leg stroke.
-        for (int i = 0; i < 7; i++) {
-            int pinNum = 14 - i;
+        // Top pins (pinCount down to half+1, left to right). No leg stroke.
+        for (int i = 0; i < half; i++) {
+            int pinNum = pinCount - i;
             Pin p = getPin(String.valueOf(pinNum));
             if (p != null) {
                 double px = startX + i * pinSpacing;

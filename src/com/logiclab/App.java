@@ -132,7 +132,10 @@ public class App extends Application {
             }
         });
         startMenu.setOnOpenDemo(circuit -> openProject(circuit, null));
+        startMenu.setOnNewSubCircuit(() -> openSubCircuit(new Circuit(), null, null));
+        startMenu.setOnOpenSubCircuit(def -> openSubCircuit(def.getInner(), def.getId(), def.getName()));
         startMenu.refreshRecents();
+        startMenu.refreshSubcircuits();
         contentHolder.getChildren().setAll(startMenu.getRoot());
         primaryStage.setTitle("LogicLab - Circuit Simulator");
         titleBar.setTitle("LogicLab");
@@ -147,6 +150,16 @@ public class App extends Application {
         String label = file != null ? file.getName().replace(".llb", "") : "Untitled";
         primaryStage.setTitle("LogicLab - " + label);
         titleBar.setTitle("LogicLab \u2014 " + label);
+    }
+
+    private void openSubCircuit(Circuit circuit, String id, String name) {
+        mainWindow = new MainWindow(circuit, statusBar, id, name);
+        mainWindow.setStage(primaryStage);
+        mainWindow.setOnCloseProject(this::showStartMenu);
+        contentHolder.getChildren().setAll(mainWindow.getRoot());
+        String label = name != null ? name : "New Subcircuit";
+        primaryStage.setTitle("LogicLab - " + label);
+        titleBar.setTitle("LogicLab \u2014 Subcircuit: " + label);
     }
 
     /** Title-bar close-button hook: returns true if the window may actually close. */

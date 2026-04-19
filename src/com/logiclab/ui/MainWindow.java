@@ -41,7 +41,12 @@ public class MainWindow {
     private final UndoManager undoManager = new UndoManager();
     private File currentFile;
     private Runnable onCloseProject;
+    private Runnable onSubCircuitSaved;
     private Stage stage;
+
+    private final boolean subCircuitMode;
+    private String subCircuitId;
+    private String subCircuitName;
 
     public MainWindow() {
         this(new Circuit(), null, null);
@@ -52,8 +57,22 @@ public class MainWindow {
     }
 
     public MainWindow(Circuit initialCircuit, File sourceFile, StatusBar sharedStatusBar) {
+        this(initialCircuit, sourceFile, sharedStatusBar, false, null, null);
+    }
+
+    /** Sub-circuit editor variant. {@code id}/{@code name} may be null for a new definition. */
+    public MainWindow(Circuit initialCircuit, StatusBar sharedStatusBar,
+                      String subCircuitId, String subCircuitName) {
+        this(initialCircuit, null, sharedStatusBar, true, subCircuitId, subCircuitName);
+    }
+
+    private MainWindow(Circuit initialCircuit, File sourceFile, StatusBar sharedStatusBar,
+                       boolean subCircuitMode, String subCircuitId, String subCircuitName) {
         circuit = initialCircuit != null ? initialCircuit : new Circuit();
         currentFile = sourceFile;
+        this.subCircuitMode = subCircuitMode;
+        this.subCircuitId = subCircuitId;
+        this.subCircuitName = subCircuitName;
 
         root = new BorderPane();
         root.setStyle("-fx-background-color: " + Theme.BG_EDITOR + ";");
@@ -90,7 +109,8 @@ public class MainWindow {
                     if (currentMode == AppMode.DRAW) {
                         canvasView.startBreadboardPlacement();
                     }
-                }
+                },
+                subCircuitMode
         );
 
         // Canvas callbacks
@@ -111,6 +131,7 @@ public class MainWindow {
         propertiesPanel.setOnComponentChanged(canvasView::redraw);
         propertiesPanel.setOnTagCommitted(this::captureUndo);
         propertiesPanel.setOnPinSideChanged(canvasView::setPinSideOnSelection);
+        propertiesPanel.setOnViewSubCircuit(this::openSubCircuitViewer);
 
         // Toolbar callbacks
         toolbar.setOnModeChange(this::switchMode);
@@ -121,6 +142,7 @@ public class MainWindow {
         toolbar.setOnUndo(this::doUndo);
         toolbar.setOnRedo(this::doRedo);
         toolbar.setOnCloseProject(this::closeProject);
+        toolbar.setSubCircuitMode(subCircuitMode);
 
         // Layout
         root.setTop(toolbar);
@@ -193,6 +215,7 @@ public class MainWindow {
      * true iff the save completed (caller uses this to know if it can proceed).
      */
     private boolean saveCurrent() {
+        if (subCircuitMode) return saveSubCircuit();
         File target;
         if (currentFile != null) {
             if (!fileController.saveTo(circuit, currentFile)) return false;
@@ -205,6 +228,116 @@ public class MainWindow {
         RecentProjects.add(target);
         statusBar.setStatus("Saved: " + target.getName());
         return true;
+    }
+
+    /**
+     * Saves the current circuit to the sub-circuit library. Prompts for id +
+     * name on first save; re-uses them on subsequent saves.
+     */
+    private boolean saveSubCircuit() {
+        boolean hasPort = circuit.getComponents().stream().anyMatch(c ->
+                c instanceof com.logiclab.model.ports.InputPort ||
+                c instanceof com.logiclab.model.ports.OutputPort);
+        if (!hasPort) {
+            Alert a = new Alert(Alert.AlertType.WARNING,
+                    "Add at least one Input Port or Output Port before saving.",
+                    ButtonType.OK);
+            a.setHeaderText("No ports defined");
+            a.showAndWait();
+            return false;
+        }
+
+        // Every port must carry a non-default, non-blank label so the outer
+        // box has meaningful pin names.
+        java.util.List<String> unlabeled = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        java.util.List<String> dupes = new java.util.ArrayList<>();
+        for (com.logiclab.model.Component comp : circuit.getComponents()) {
+            String label = null;
+            String fallback = null;
+            if (comp instanceof com.logiclab.model.ports.InputPort ip) {
+                label = ip.getPortLabel();
+                fallback = "IN";
+            } else if (comp instanceof com.logiclab.model.ports.OutputPort op) {
+                label = op.getPortLabel();
+                fallback = "OUT";
+            } else {
+                continue;
+            }
+            if (label == null || label.isBlank() || label.equals(fallback)) {
+                unlabeled.add(comp.getName() + " @ (" + (int) comp.getX() + "," + (int) comp.getY() + ")");
+            } else if (!seen.add(fallback + ":" + label)) {
+                dupes.add(fallback + " \"" + label + "\"");
+            }
+        }
+        if (!unlabeled.isEmpty()) {
+            Alert a = new Alert(Alert.AlertType.WARNING,
+                    "Every Input/Output Port needs a unique label (edit in the Properties panel):\n\n  "
+                            + String.join("\n  ", unlabeled),
+                    ButtonType.OK);
+            a.setHeaderText("Unlabeled ports");
+            a.showAndWait();
+            return false;
+        }
+        if (!dupes.isEmpty()) {
+            Alert a = new Alert(Alert.AlertType.WARNING,
+                    "Port labels must be unique within their side (inputs / outputs):\n\n  "
+                            + String.join("\n  ", dupes),
+                    ButtonType.OK);
+            a.setHeaderText("Duplicate port labels");
+            a.showAndWait();
+            return false;
+        }
+
+        if (subCircuitId == null || subCircuitId.isEmpty()) {
+            javafx.scene.control.Dialog<javafx.util.Pair<String, String>> dialog = new javafx.scene.control.Dialog<>();
+            dialog.setTitle("Save Sub-Circuit");
+            dialog.setHeaderText("Give this sub-circuit a unique id and a display name.");
+            ButtonType saveBtn = new ButtonType("Save", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+            javafx.scene.control.TextField idField = new javafx.scene.control.TextField();
+            idField.setPromptText("user.halfadder.v1");
+            javafx.scene.control.TextField nameField = new javafx.scene.control.TextField();
+            nameField.setPromptText("Half Adder");
+
+            javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+            grid.setHgap(8); grid.setVgap(8);
+            grid.setPadding(new javafx.geometry.Insets(10));
+            grid.add(new javafx.scene.control.Label("Id:"), 0, 0);
+            grid.add(idField, 1, 0);
+            grid.add(new javafx.scene.control.Label("Name:"), 0, 1);
+            grid.add(nameField, 1, 1);
+            dialog.getDialogPane().setContent(grid);
+
+            dialog.setResultConverter(bt -> bt == saveBtn
+                    ? new javafx.util.Pair<>(idField.getText().trim(), nameField.getText().trim())
+                    : null);
+
+            Optional<javafx.util.Pair<String, String>> result = dialog.showAndWait();
+            if (result.isEmpty()) return false;
+            String id = result.get().getKey();
+            String name = result.get().getValue();
+            if (id.isEmpty() || name.isEmpty()) {
+                new Alert(Alert.AlertType.WARNING, "Both id and name are required.", ButtonType.OK).showAndWait();
+                return false;
+            }
+            subCircuitId = id;
+            subCircuitName = name;
+        }
+
+        try {
+            com.logiclab.model.subcircuit.SubCircuitDefinition def =
+                    new com.logiclab.model.subcircuit.SubCircuitDefinition(subCircuitId, subCircuitName, circuit);
+            com.logiclab.io.SubCircuitLibrary.save(def, System.getProperty("user.name"));
+            circuit.setModified(false);
+            statusBar.setStatus("Saved sub-circuit: " + subCircuitName);
+            if (onSubCircuitSaved != null) onSubCircuitSaved.run();
+            return true;
+        } catch (java.io.IOException e) {
+            new Alert(Alert.AlertType.ERROR, "Failed to save sub-circuit: " + e.getMessage(), ButtonType.OK).showAndWait();
+            return false;
+        }
     }
 
     private void newCircuitWithPrompt() {
@@ -242,6 +375,29 @@ public class MainWindow {
         refreshUndoRedoButtons();
         statusBar.setStatus("Circuit cleared");
         statusBar.setWarning("");
+    }
+
+    /**
+     * Pops up a read-only window showing the internals of a sub-circuit
+     * instance. User can pan/zoom but not edit anything.
+     */
+    private void openSubCircuitViewer(com.logiclab.model.subcircuit.SubCircuitInstance sci) {
+        if (sci == null || sci.isBroken() || sci.getDefinition() == null) return;
+        Circuit inner = sci.getDefinition().getInner();
+
+        CanvasView viewer = new CanvasView(inner);
+        viewer.setViewOnly(true);
+        viewer.setMode(AppMode.SIMULATE);
+
+        BorderPane root = new BorderPane(viewer);
+        root.setStyle("-fx-background-color: " + Theme.BG_EDITOR + ";");
+
+        Stage dialog = new Stage();
+        dialog.setTitle("Subcircuit: " + sci.getDefinition().getName() + "  (read-only)");
+        dialog.initOwner(stage);
+        dialog.setScene(new javafx.scene.Scene(root, 900, 600));
+        dialog.show();
+        viewer.redraw();
     }
 
     private void closeProject() {
@@ -393,6 +549,8 @@ public class MainWindow {
     public Stage getStage() { return stage; }
 
     public void setOnCloseProject(Runnable handler) { this.onCloseProject = handler; }
+
+    public void setOnSubCircuitSaved(Runnable handler) { this.onSubCircuitSaved = handler; }
 
     public File getCurrentFile() { return currentFile; }
     public void setCurrentFile(File f) { this.currentFile = f; }

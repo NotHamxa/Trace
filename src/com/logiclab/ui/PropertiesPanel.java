@@ -5,8 +5,12 @@ import com.logiclab.model.input.DIPSwitch;
 import com.logiclab.model.output.LED;
 import com.logiclab.model.output.LightBar;
 import com.logiclab.model.passive.Resistor;
+import com.logiclab.model.ports.InputPort;
+import com.logiclab.model.ports.OutputPort;
+import com.logiclab.model.subcircuit.SubCircuitInstance;
 import java.util.List;
 import javafx.geometry.Insets;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -30,6 +34,9 @@ public class PropertiesPanel extends VBox {
 
     /** Called when the user picks a new pin side for an input component. */
     private Consumer<PinSide> onPinSideChanged;
+
+    /** Called when the user clicks "View Internals" on a sub-circuit instance. */
+    private Consumer<SubCircuitInstance> onViewSubCircuit;
 
     public PropertiesPanel() {
         setPrefWidth(180);
@@ -63,6 +70,10 @@ public class PropertiesPanel extends VBox {
 
     public void setOnPinSideChanged(Consumer<PinSide> handler) {
         this.onPinSideChanged = handler;
+    }
+
+    public void setOnViewSubCircuit(Consumer<SubCircuitInstance> handler) {
+        this.onViewSubCircuit = handler;
     }
 
     /** Rebuilds the panel for a selected wire. */
@@ -306,6 +317,41 @@ public class PropertiesPanel extends VBox {
                 row.getChildren().addAll(lbl, tf);
                 getChildren().add(row);
             }
+        }
+
+        if (c instanceof InputPort || c instanceof OutputPort) {
+            getChildren().add(new Separator());
+            Label labelHeader = new Label("Port Label:");
+            labelHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: " + Theme.TEXT_PRIMARY + "; -fx-font-size: 11;");
+            getChildren().add(labelHeader);
+
+            TextField tf = new TextField(
+                    c instanceof InputPort ip ? ip.getPortLabel() : ((OutputPort) c).getPortLabel());
+            tf.setPrefWidth(140);
+            tf.setStyle("-fx-font-size: 11;");
+            tf.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (c instanceof InputPort ip) ip.setPortLabel(newVal);
+                else ((OutputPort) c).setPortLabel(newVal);
+                if (onComponentChanged != null) onComponentChanged.run();
+            });
+            tf.focusedProperty().addListener((obs, was, isNow) -> {
+                if (was && !isNow && onTagCommitted != null) onTagCommitted.run();
+            });
+            tf.setOnAction(e -> { if (onTagCommitted != null) onTagCommitted.run(); });
+            getChildren().add(tf);
+        }
+
+        if (c instanceof SubCircuitInstance sci && !sci.isBroken()) {
+            getChildren().add(new Separator());
+            Button viewBtn = new Button("View Internals");
+            viewBtn.setPrefWidth(150);
+            viewBtn.setStyle("-fx-background-color: " + Theme.BTN_BG + "; -fx-text-fill: " +
+                    Theme.TEXT_PRIMARY + "; -fx-font-size: 11; -fx-background-radius: 6; " +
+                    "-fx-padding: 5 10; -fx-cursor: hand;");
+            viewBtn.setOnAction(e -> {
+                if (onViewSubCircuit != null) onViewSubCircuit.accept(sci);
+            });
+            getChildren().add(viewBtn);
         }
 
         getChildren().add(new Separator());

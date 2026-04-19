@@ -51,6 +51,11 @@ public class CanvasView extends Pane {
     private boolean panning;
     private double panStartX, panStartY;
 
+    /** When true, all mouse input except pan + zoom is swallowed. Used by the sub-circuit viewer. */
+    private boolean viewOnly = false;
+
+    public void setViewOnly(boolean v) { this.viewOnly = v; }
+
     // Callbacks
     private Consumer<Component> onComponentSelected;
     private Consumer<String> onStatusMessage;
@@ -102,6 +107,18 @@ public class CanvasView extends Pane {
             panStartX = e.getX() - panX;
             panStartY = e.getY() - panY;
             setCursor(Cursor.MOVE);
+            return;
+        }
+
+        if (viewOnly) {
+            // Treat any left-button press on empty space as a pan start, so the
+            // user doesn't need to hold Ctrl to move around the read-only view.
+            if (e.getButton() == MouseButton.PRIMARY) {
+                panning = true;
+                panStartX = e.getX() - panX;
+                panStartY = e.getY() - panY;
+                setCursor(Cursor.MOVE);
+            }
             return;
         }
 
@@ -881,11 +898,12 @@ public class CanvasView extends Pane {
         if (bb == null) return;
 
         // snappedX = bb.getHoleX(startCol) - 10, so startCol = (ic.getX() + 10 - boardX) / HOLE_SPACING
+        int half = ic.getPinCount() / 2;
         int startCol = (int) Math.round((ic.getX() + 10 - bb.getBoardX()) / Breadboard.HOLE_SPACING);
-        if (startCol < 0 || startCol + 6 >= bb.getRows()) return;
+        if (startCol < 0 || startCol + half - 1 >= bb.getRows()) return;
 
-        // Bottom row: pins 1..7 land on row 'f' (letter index 5)
-        for (int i = 0; i < 7; i++) {
+        // Bottom row: pins 1..half land on row 'f' (letter index 5)
+        for (int i = 0; i < half; i++) {
             Pin icPin = ic.getPin(String.valueOf(i + 1));
             ContactPoint cp = bb.getHole(startCol + i, 5);
             if (icPin == null || cp == null) continue;
@@ -893,9 +911,9 @@ public class CanvasView extends Pane {
             hp.setPosition(cp.getCanvasX(), cp.getCanvasY());
             circuit.addWire(new Wire(icPin, hp));
         }
-        // Top row: pin 14 at startCol, pin 13 at startCol+1, ..., pin 8 at startCol+6, row 'e' (letter 4)
-        for (int i = 0; i < 7; i++) {
-            Pin icPin = ic.getPin(String.valueOf(14 - i));
+        // Top row: highest pin at startCol, (half+1) rightmost, row 'e' (letter 4)
+        for (int i = 0; i < half; i++) {
+            Pin icPin = ic.getPin(String.valueOf(ic.getPinCount() - i));
             ContactPoint cp = bb.getHole(startCol + i, 4);
             if (icPin == null || cp == null) continue;
             HolePin hp = cp.getOrCreateHolePin();
@@ -1022,11 +1040,13 @@ public class CanvasView extends Pane {
     /** Snap a component to the nearest breadboard. ICs auto-straddle the center gap. */
     private double[] snapForPlacement(Component c, double wx, double wy) {
         if (c instanceof ICChip) {
+            ICChip ic = (ICChip) c;
+            int half = ic.getPinCount() / 2;
             Breadboard bb = findNearestBreadboard(wx, wy);
             double pinSpacing = 20;
-            double targetPinX = wx + c.getWidth() / 2 - 3 * pinSpacing;
+            double targetPinX = wx + c.getWidth() / 2 - (half - 1) * pinSpacing / 2.0;
             int nearestCol = (int) Math.round((targetPinX - bb.getHoleX(0)) / pinSpacing);
-            nearestCol = Math.max(0, Math.min(bb.getRows() - 7, nearestCol));
+            nearestCol = Math.max(0, Math.min(bb.getRows() - half, nearestCol));
             // Slide to the nearest free slot so ICs can't overlap. Falls back to the
             // preferred column if no free slot exists — the commit path will refuse.
             int freeCol = findFreeIcSlot(bb, nearestCol, (ICChip) c);
@@ -1039,17 +1059,18 @@ public class CanvasView extends Pane {
         return new double[]{Math.round(wx / g) * g, Math.round(wy / g) * g};
     }
 
-    /** True if no other IC on {@code bb} occupies the 7 columns starting at {@code startCol}. */
-    private boolean isIcSlotFree(Breadboard bb, int startCol, ICChip excludeIc) {
+    /** True if no other IC on {@code bb} overlaps the column range needed by {@code ic}. */
+    private boolean isIcSlotFree(Breadboard bb, int startCol, ICChip ic) {
+        int half = ic.getPinCount() / 2;
         for (Component c : circuit.getComponents()) {
-            if (!(c instanceof ICChip) || c == excludeIc) continue;
+            if (!(c instanceof ICChip) || c == ic) continue;
             ICChip other = (ICChip) c;
+            int otherHalf = other.getPinCount() / 2;
             Breadboard otherBb = findNearestBreadboard(other.getX() + other.getWidth() / 2,
                                                        other.getY() + other.getHeight() / 2);
             if (otherBb != bb) continue;
             int otherStart = (int) Math.round((other.getX() + 10 - bb.getBoardX()) / Breadboard.HOLE_SPACING);
-            // Two 7-column ranges overlap when start+6 >= otherStart && otherStart+6 >= start.
-            if (startCol + 6 >= otherStart && otherStart + 6 >= startCol) {
+            if (startCol + half - 1 >= otherStart && otherStart + otherHalf - 1 >= startCol) {
                 return false;
             }
         }
@@ -1057,14 +1078,14 @@ public class CanvasView extends Pane {
     }
 
     /** Finds the free IC slot closest to {@code preferredCol}, or -1 if the board has no room. */
-    private int findFreeIcSlot(Breadboard bb, int preferredCol, ICChip excludeIc) {
-        int max = bb.getRows() - 7;
+    private int findFreeIcSlot(Breadboard bb, int preferredCol, ICChip ic) {
+        int max = bb.getRows() - ic.getPinCount() / 2;
         if (max < 0) return -1;
         int p = Math.max(0, Math.min(max, preferredCol));
-        if (isIcSlotFree(bb, p, excludeIc)) return p;
+        if (isIcSlotFree(bb, p, ic)) return p;
         for (int d = 1; d <= max; d++) {
-            if (p - d >= 0 && isIcSlotFree(bb, p - d, excludeIc)) return p - d;
-            if (p + d <= max && isIcSlotFree(bb, p + d, excludeIc)) return p + d;
+            if (p - d >= 0 && isIcSlotFree(bb, p - d, ic)) return p - d;
+            if (p + d <= max && isIcSlotFree(bb, p + d, ic)) return p + d;
         }
         return -1;
     }

@@ -54,6 +54,11 @@ public abstract class Component implements Serializable, Renderable, Simulatable
         return id;
     }
 
+    /** Used by the JSON loader to restore saved component ids. */
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
     }

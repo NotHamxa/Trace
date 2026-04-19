@@ -82,7 +82,7 @@ public class FileController {
             // Freshly loaded from disk → clean state.
             circuit.setModified(false);
             return circuit;
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             showError("Could not load file: " + e.getMessage());
             return null;
         }
