@@ -1,0 +1,663 @@
+{
+  "version" : 1,
+  "id" : "demo.gray2bin.v1",
+  "name" : "Gray → Binary (4-bit)",
+  "author" : "Trace Demos",
+  "circuit" : {
+    "version" : 1,
+    "name" : "Gray Code → Binary (4-bit)",
+    "breadboards" : [ {
+      "index" : 0,
+      "columns" : 30,
+      "x" : 40.0,
+      "y" : 40.0
+    } ],
+    "components" : [ {
+      "id" : "7486_XOR_1",
+      "type" : "IC_7486",
+      "x" : 230.0,
+      "y" : 180.0,
+      "locked" : false,
+      "props" : { }
+    }, {
+      "id" : "Input_Port_16",
+      "type" : "INPUT_PORT",
+      "x" : -40.0,
+      "y" : 380.0,
+      "locked" : false,
+      "props" : {
+        "label" : "G3"
+      }
+    }, {
+      "id" : "Input_Port_17",
+      "type" : "INPUT_PORT",
+      "x" : -40.0,
+      "y" : 420.0,
+      "locked" : false,
+      "props" : {
+        "label" : "G2"
+      }
+    }, {
+      "id" : "Input_Port_18",
+      "type" : "INPUT_PORT",
+      "x" : -40.0,
+      "y" : 460.0,
+      "locked" : false,
+      "props" : {
+        "label" : "G1"
+      }
+    }, {
+      "id" : "Input_Port_19",
+      "type" : "INPUT_PORT",
+      "x" : -40.0,
+      "y" : 500.0,
+      "locked" : false,
+      "props" : {
+        "label" : "G0"
+      }
+    }, {
+      "id" : "Output_Port_20",
+      "type" : "OUTPUT_PORT",
+      "x" : 650.0,
+      "y" : 380.0,
+      "locked" : false,
+      "props" : {
+        "label" : "B3"
+      }
+    }, {
+      "id" : "Output_Port_21",
+      "type" : "OUTPUT_PORT",
+      "x" : 650.0,
+      "y" : 420.0,
+      "locked" : false,
+      "props" : {
+        "label" : "B2"
+      }
+    }, {
+      "id" : "Output_Port_22",
+      "type" : "OUTPUT_PORT",
+      "x" : 650.0,
+      "y" : 460.0,
+      "locked" : false,
+      "props" : {
+        "label" : "B1"
+      }
+    }, {
+      "id" : "Output_Port_23",
+      "type" : "OUTPUT_PORT",
+      "x" : 650.0,
+      "y" : 500.0,
+      "locked" : false,
+      "props" : {
+        "label" : "B0"
+      }
+    }, {
+      "id" : "5V_Supply_24",
+      "type" : "POWER_5V",
+      "x" : 23.0,
+      "y" : 0.0,
+      "locked" : false,
+      "props" : { }
+    }, {
+      "id" : "Ground_25",
+      "type" : "GND",
+      "x" : 603.0,
+      "y" : 435.0,
+      "locked" : false,
+      "props" : { }
+    } ],
+    "wires" : [ {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "1"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 10,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "14"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 10,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "2"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 11,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "13"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 11,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "3"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 12,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "12"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 12,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "4"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 13,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "11"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 13,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "5"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 14,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "10"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 14,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "6"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 15,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "9"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 15,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "7"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 16,
+        "row" : 5
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "7486_XOR_1",
+        "pinLabel" : "8"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 16,
+        "row" : 4
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "5V_Supply_24",
+        "pinLabel" : "VCC"
+      },
+      "end" : {
+        "kind" : "rail",
+        "breadboardIndex" : 0,
+        "col" : 0,
+        "rail" : "TOP_PLUS"
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Ground_25",
+        "pinLabel" : "GND"
+      },
+      "end" : {
+        "kind" : "rail",
+        "breadboardIndex" : 0,
+        "col" : 29,
+        "rail" : "BOT_MINUS"
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "rail",
+        "breadboardIndex" : 0,
+        "col" : 10,
+        "rail" : "TOP_PLUS"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 10,
+        "row" : 0
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "rail",
+        "breadboardIndex" : 0,
+        "col" : 16,
+        "rail" : "BOT_MINUS"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 16,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Input_Port_16",
+        "pinLabel" : "OUT"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 2,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 0.0, 353.0 ], [ 80.0, 353.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Input_Port_17",
+        "pinLabel" : "OUT"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 4,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 0.0, 363.0 ], [ 120.0, 363.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Input_Port_18",
+        "pinLabel" : "OUT"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 6,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 0.0, 373.0 ], [ 160.0, 373.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Input_Port_19",
+        "pinLabel" : "OUT"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 8,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 0.0, 383.0 ], [ 200.0, 383.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 2,
+        "row" : 6
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 19,
+        "row" : 6
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 4,
+        "row" : 7
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 10,
+        "row" : 7
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 2,
+        "row" : 8
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 11,
+        "row" : 8
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 12,
+        "row" : 6
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 21,
+        "row" : 6
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 6,
+        "row" : 7
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 13,
+        "row" : 7
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 21,
+        "row" : 8
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 14,
+        "row" : 8
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 15,
+        "row" : 6
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 23,
+        "row" : 6
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 8,
+        "row" : 9
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 15,
+        "row" : 0
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 200.0, 32.0 ], [ 340.0, 32.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 23,
+        "row" : 9
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 14,
+        "row" : 0
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 500.0, 27.0 ], [ 320.0, 27.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 16,
+        "row" : 0
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 25,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 360.0, 22.0 ], [ 540.0, 22.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Output_Port_20",
+        "pinLabel" : "IN"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 19,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 650.0, 393.0 ], [ 420.0, 393.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Output_Port_21",
+        "pinLabel" : "IN"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 21,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 650.0, 403.0 ], [ 460.0, 403.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Output_Port_22",
+        "pinLabel" : "IN"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 23,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 650.0, 413.0 ], [ 500.0, 413.0 ] ]
+    }, {
+      "start" : {
+        "kind" : "component",
+        "componentId" : "Output_Port_23",
+        "pinLabel" : "IN"
+      },
+      "end" : {
+        "kind" : "hole",
+        "breadboardIndex" : 0,
+        "col" : 25,
+        "row" : 9
+      },
+      "colorHex" : "#000000",
+      "locked" : false,
+      "waypoints" : [ [ 650.0, 423.0 ], [ 540.0, 423.0 ] ]
+    } ]
+  }
+}

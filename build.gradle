@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.trace'
-version = '0.0.1'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
@@ -70,6 +70,13 @@ tasks.register('buildIcDemo', JavaExec) {
     description = 'Generates demo_and_gate.trc'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.trace.DemoIcBuilder'
+}
+
+tasks.register('buildSubCircuitDemo', JavaExec) {
+    group = 'application'
+    description = 'Generates demo_gray_to_binary.trs'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.trace.DemoSubCircuitBuilder'
 }
 
 tasks.register('buildExe', Exec) {
