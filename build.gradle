@@ -3,7 +3,7 @@ plugins {
     id 'org.openjfx.javafxplugin' version '0.1.0'
 }
 
-group = 'com.logiclab'
+group = 'com.trace'
 version = '0.0.1'
 
 repositories {
@@ -26,7 +26,7 @@ javafx {
 }
 
 application {
-    mainClass = 'com.logiclab.App'
+    mainClass = 'com.trace.App'
 }
 
 sourceSets {
@@ -60,16 +60,16 @@ processResources.dependsOn('generateVersionResource')
 
 tasks.register('buildDemo', JavaExec) {
     group = 'application'
-    description = 'Generates demo_circuit.llb'
+    description = 'Generates demo_circuit.trc'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.logiclab.DemoBuilder'
+    mainClass = 'com.trace.DemoBuilder'
 }
 
 tasks.register('buildIcDemo', JavaExec) {
     group = 'application'
-    description = 'Generates demo_and_gate.llb'
+    description = 'Generates demo_and_gate.trc'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.logiclab.DemoIcBuilder'
+    mainClass = 'com.trace.DemoIcBuilder'
 }
 
 tasks.register('buildExe', Exec) {
@@ -78,7 +78,7 @@ tasks.register('buildExe', Exec) {
     dependsOn 'installDist'
 
     def jpackageDir = layout.buildDirectory.dir('jpackage')
-    def installDir = layout.buildDirectory.dir('install/LogicLab/lib')
+    def installDir = layout.buildDirectory.dir('install/Trace/lib')
     def javaHome = javaToolchains.launcherFor(java.toolchain).get().metadata.installationPath.asFile.absolutePath
 
     doFirst {
@@ -88,11 +88,11 @@ tasks.register('buildExe', Exec) {
     executable = "${javaHome}/bin/jpackage"
     args = [
         '--type', 'exe',
-        '--name', 'LogicLab',
+        '--name', 'Trace',
         '--app-version', "${project.version}",
         '--input', installDir.get().asFile.absolutePath,
-        '--main-jar', "LogicLab-${project.version}.jar",
-        '--main-class', 'com.logiclab.Launcher',
+        '--main-jar', "Trace-${project.version}.jar",
+        '--main-class', 'com.trace.Launcher',
         '--dest', jpackageDir.get().asFile.absolutePath,
         '--icon', file('src/resources/icons/icon.ico').absolutePath,
         '--java-options', '--module-path=$APPDIR',

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Patch the serialVersionUID of com.logiclab.model.Wire inside .llb files to 1L."""
+"""Patch the serialVersionUID of com.trace.model.Wire inside .trc files to 1L."""
 import sys, os
 
 NEW_UID = (1).to_bytes(8, "big", signed=True)
-NAME = b"com.logiclab.model.Wire"
+NAME = b"com.trace.model.Wire"
 # TC_CLASSDESC = 0x72, then UTF: 2-byte length, then name, then 8-byte serialVersionUID
 PATTERN = bytes([0x72, 0x00, len(NAME)]) + NAME
 
