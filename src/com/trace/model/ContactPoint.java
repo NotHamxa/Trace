@@ -57,12 +57,10 @@ public class ContactPoint implements Serializable {
         this.canvasY = y;
     }
 
-    /** Returns the existing HolePin if one was created, or null. Does NOT create one. */
     public HolePin getHolePinIfExists() {
         return holePin;
     }
 
-    /** Lazily creates a Pin representing this bare breadboard hole, for wires. */
     public HolePin getOrCreateHolePin() {
         if (holePin == null) {
             BreadboardHoleAnchor anchor = new BreadboardHoleAnchor(row, col);

@@ -2,12 +2,6 @@ package com.trace.io.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-/**
- * A reference to a pin in the saved file. One of three kinds:
- *   - "component": a pin on a placed component (componentId + pinLabel)
- *   - "hole":      a bare main-grid hole (breadboardIndex + col + row, row 0..9 = a..j)
- *   - "rail":      a power-rail hole (breadboardIndex + rail + col)
- */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record PinRefDTO(
         String kind,

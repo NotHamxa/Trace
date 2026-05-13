@@ -78,11 +78,9 @@ public final class UpdateChecker {
             this.installerUrl = exe;
             Platform.runLater(() -> listener.onAvailable(latest));
         } catch (Exception e) {
-            // Silent — no network or rate-limited; user can still use the app.
         }
     }
 
-    /** Begin downloading the installer in a background thread. */
     public void startDownload() {
         if (installerUrl == null) return;
         Thread t = new Thread(this::downloadBlocking, "update-downloader");
@@ -132,7 +130,6 @@ public final class UpdateChecker {
         }
     }
 
-    /** Launch the downloaded installer and exit the app. */
     public void installAndExit() {
         if (downloadedInstaller == null) return;
         try {

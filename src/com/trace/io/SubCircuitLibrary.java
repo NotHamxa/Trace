@@ -10,13 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * User-local library of sub-circuit definitions. Lives at
- * {@code ~/.trace/subcircuits/<id>.trs}.
- *
- * Definitions are cached by id after first load; call {@link #reload()} to
- * rescan the directory (e.g. after saving a new sub-circuit).
- */
 public final class SubCircuitLibrary {
     private static final Map<String, SubCircuitDefinition> CACHE = new HashMap<>();
     private static boolean scanned = false;
@@ -29,7 +22,6 @@ public final class SubCircuitLibrary {
         return dir;
     }
 
-    /** Returns the canonical on-disk path for an id. */
     public static File fileFor(String id) {
         return new File(directory(), sanitize(id) + ".trs");
     }
@@ -38,7 +30,6 @@ public final class SubCircuitLibrary {
         return id.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
-    /** All loaded definitions. Triggers a scan if none have been loaded yet. */
     public static synchronized List<SubCircuitDefinition> all() {
         if (!scanned) reload();
         List<SubCircuitDefinition> list = new ArrayList<>(CACHE.values());
@@ -46,7 +37,6 @@ public final class SubCircuitLibrary {
         return list;
     }
 
-    /** Looks up a definition by id, loading on demand. Returns null if not found. */
     public static synchronized SubCircuitDefinition get(String id) {
         if (id == null) return null;
         SubCircuitDefinition cached = CACHE.get(id);
@@ -62,14 +52,12 @@ public final class SubCircuitLibrary {
         }
     }
 
-    /** Writes a definition to disk and refreshes the cache. */
     public static synchronized void save(SubCircuitDefinition def, String author) throws IOException {
         File f = fileFor(def.getId());
         SubCircuitIO.write(def, author, f);
         CACHE.put(def.getId(), def);
     }
 
-    /** Rescans the on-disk directory and rebuilds the cache. */
     public static synchronized void reload() {
         CACHE.clear();
         scanned = true;
@@ -81,12 +69,10 @@ public final class SubCircuitLibrary {
                 SubCircuitDefinition def = SubCircuitIO.read(f);
                 CACHE.put(def.getId(), def);
             } catch (IOException ignore) {
-                // Skip unreadable files rather than failing the scan.
             }
         }
     }
 
-    /** Unmodifiable view of the cache, primarily for diagnostics. */
     public static synchronized Map<String, SubCircuitDefinition> cache() {
         return Collections.unmodifiableMap(CACHE);
     }

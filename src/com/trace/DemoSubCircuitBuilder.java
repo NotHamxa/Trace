@@ -14,18 +14,6 @@ import javafx.scene.canvas.Canvas;
 
 import java.io.File;
 
-/**
- * Generates demo_gray_to_binary.trs — a Gray Code → Binary 4-bit sub-circuit.
- *
- * Logic (one 7486 XOR chip):
- *   B3 = G3
- *   B2 = G2 ^ B3
- *   B1 = G1 ^ B2
- *   B0 = G0 ^ B1
- *
- * The inner circuit uses InputPort/OutputPort components so the saved .trs
- * can be dropped onto another canvas as a reusable 4-in / 4-out block.
- */
 public class DemoSubCircuitBuilder {
 
     public static void main(String[] args) throws Exception {
@@ -52,7 +40,6 @@ public class DemoSubCircuitBuilder {
         OutputPort b1 = new OutputPort("B1");
         OutputPort b0 = new OutputPort("B0");
 
-        // Inputs down the left, outputs down the right. Y-order defines port order.
         double inX = bb.getHoleX(0) - 80;
         double outX = bb.getHoleX(29) + 30;
         double topY = bb.getBoardY() + 340;
@@ -76,16 +63,13 @@ public class DemoSubCircuitBuilder {
         c.addComponent(vcc);
         c.addComponent(gnd);
 
-        // Rails
         c.addWire(new Wire(vcc.getPin("VCC"),
                 bb.getTopPositive().getPoint(0).getOrCreateHolePin()));
         c.addWire(new Wire(gnd.getPin("GND"),
                 bb.getBottomNegative().getPoint(29).getOrCreateHolePin()));
 
-        // IC power
         wireIcPower(c, bb, xorCol);
 
-        // InputPorts → G3..G0 columns (row j)
         c.addWire(route(new Wire(g3.getPin("OUT"),
                 bb.getHole(colG3, 9).getOrCreateHolePin()),
                 belowBoard(bb, 1)));
@@ -99,20 +83,16 @@ public class DemoSubCircuitBuilder {
                 bb.getHole(colG0, 9).getOrCreateHolePin()),
                 belowBoard(bb, 7)));
 
-        // B3 = G3 pass-through (long on-board hop on row g)
         c.addWire(hop(bb, colG3, colB3, 6));
 
-        // Gate A: G2 ^ G3 → B2 — on-board hops
         c.addWire(hop(bb, colG2, xorCol, 7));         // G2 → pin 1
         c.addWire(hop(bb, colG3, xorCol + 1, 8));     // G3 → pin 2
         c.addWire(hop(bb, xorCol + 2, colB2, 6));     // pin 3 → B2
 
-        // Gate B: G1 ^ B2 → B1 — on-board hops
         c.addWire(hop(bb, colG1, xorCol + 3, 7));     // G1 → pin 4
         c.addWire(hop(bb, colB2, xorCol + 4, 8));     // B2 → pin 5
         c.addWire(hop(bb, xorCol + 5, colB1, 6));     // pin 6 → B1
 
-        // Gate C: G0 ^ B1 → B0 (route above the board across the chip middle)
         c.addWire(route(new Wire(
                 bb.getHole(colG0, 9).getOrCreateHolePin(),
                 bb.getHole(xorCol + 5, 0).getOrCreateHolePin()),
@@ -126,7 +106,6 @@ public class DemoSubCircuitBuilder {
                 bb.getHole(colB0, 9).getOrCreateHolePin()),
                 aboveBoard(bb, 2)));
 
-        // Output ports ← B3..B0 columns (row j)
         c.addWire(route(new Wire(b3.getPin("IN"),
                 bb.getHole(colB3, 9).getOrCreateHolePin()),
                 belowBoard(bb, 9)));

@@ -23,7 +23,6 @@ public class LED extends OutputComponent {
 
     @Override
     public void simulate() {
-        // LED is active — visual state is based on isActive()
     }
 
     @Override
@@ -48,14 +47,11 @@ public class LED extends OutputComponent {
         double centerY = y + h / 2;
 
         if (isActive()) {
-            // Glow effect
             gc.setFill(getColor().deriveColor(0, 1, 1, 0.3));
             gc.fillOval(centerX - w, centerY - w, w * 2, w * 2);
 
-            // Bright LED
             gc.setFill(getColor());
         } else {
-            // Dim LED
             gc.setFill(getColor().deriveColor(0, 0.3, 0.4, 1));
         }
 
@@ -64,24 +60,20 @@ public class LED extends OutputComponent {
         gc.setLineWidth(1);
         gc.strokeOval(x, y, w, h);
 
-        // Flat bottom (cathode indicator)
         gc.setStroke(Color.rgb(100, 100, 100));
         gc.strokeLine(x + 2, y + h - 2, x + w - 2, y + h - 2);
 
-        // Leads
         gc.setStroke(Color.SILVER);
         gc.setLineWidth(1.5);
         gc.strokeLine(centerX - 5, y + h, centerX - 5, y + getHeight());
         gc.strokeLine(centerX + 5, y + h, centerX + 5, y + getHeight());
 
-        // Pin labels
         gc.setFill(Color.GRAY);
         gc.setFont(Font.font("Monospaced", 7));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText("+", centerX - 5, y + getHeight() + 9);
         gc.fillText("-", centerX + 5, y + getHeight() + 9);
 
-        // Render pins
         getPin("anode").render(gc);
         getPin("cathode").render(gc);
     }

@@ -23,19 +23,14 @@ import java.util.function.Consumer;
 
 public class PropertiesPanel extends VBox {
 
-    /** Called when the user flips the Locked checkbox — forwarded to CanvasView. */
     private Consumer<Boolean> onLockToggled;
 
-    /** Called whenever a DIP switch tag is edited — forwarded to CanvasView for redraw. */
     private Runnable onComponentChanged;
 
-    /** Called when an in-progress edit is committed (focus lost / Enter) — snapshots undo. */
     private Runnable onTagCommitted;
 
-    /** Called when the user picks a new pin side for an input component. */
     private Consumer<PinSide> onPinSideChanged;
 
-    /** Called when the user clicks "View Internals" on a sub-circuit instance. */
     private Consumer<SubCircuitInstance> onViewSubCircuit;
 
     public PropertiesPanel() {
@@ -76,7 +71,6 @@ public class PropertiesPanel extends VBox {
         this.onViewSubCircuit = handler;
     }
 
-    /** Rebuilds the panel for a selected wire. */
     public void showWireProperties(Wire w) {
         getChildren().clear();
         Label title = new Label("Properties");
@@ -134,19 +128,16 @@ public class PropertiesPanel extends VBox {
             return;
         }
 
-        // Component name
         Label nameLabel = new Label(c.getName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: " + Theme.TEXT_PRIMARY + ";");
         getChildren().add(nameLabel);
 
-        // Component ID
         Label idLabel = new Label("ID: " + c.getId());
         idLabel.setStyle("-fx-text-fill: " + Theme.TEXT_SECONDARY + "; -fx-font-size: 10;");
         getChildren().add(idLabel);
 
         getChildren().add(new Separator());
 
-        // Pin states
         Label pinsHeader = new Label("Pins:");
         pinsHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: " + Theme.TEXT_PRIMARY + "; -fx-font-size: 11;");
         getChildren().add(pinsHeader);
@@ -170,7 +161,6 @@ public class PropertiesPanel extends VBox {
             getChildren().add(row);
         }
 
-        // Gate routing map for IC chips
         if (c instanceof ICChip) {
             ICChip ic = (ICChip) c;
             List<String> gateDescs = ic.getGateDescriptions();
@@ -189,7 +179,6 @@ public class PropertiesPanel extends VBox {
             }
         }
 
-        // Pin-side chooser for any input component
         if (c instanceof InputComponent) {
             getChildren().add(new Separator());
             Label pinSideHeader = new Label("Pin Side:");
@@ -210,7 +199,6 @@ public class PropertiesPanel extends VBox {
             getChildren().add(sideCombo);
         }
 
-        // Component-specific properties
         if (c instanceof Resistor) {
             getChildren().add(new Separator());
             Label resLabel = new Label("Resistance: " + ((Resistor) c).getResistance() + "\u03A9");
@@ -245,13 +233,10 @@ public class PropertiesPanel extends VBox {
                 TextField tf = new TextField(dip.getTag(i));
                 tf.setPrefWidth(110);
                 tf.setStyle("-fx-font-size: 11;");
-                // Live-update the visible tag as the user types (no undo entry).
                 tf.textProperty().addListener((obs, oldVal, newVal) -> {
                     dip.setTag(idx, newVal);
                     if (onComponentChanged != null) onComponentChanged.run();
                 });
-                // Commit the edit — push one undo snapshot — when the field
-                // loses focus or the user presses Enter.
                 tf.focusedProperty().addListener((obs, was, isNow) -> {
                     if (was && !isNow && onTagCommitted != null) onTagCommitted.run();
                 });
@@ -267,7 +252,6 @@ public class PropertiesPanel extends VBox {
         if (c instanceof LightBar) {
             LightBar lb = (LightBar) c;
 
-            // Pin-side chooser
             getChildren().add(new Separator());
             Label pinSideHeader = new Label("Pin Side:");
             pinSideHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: " + Theme.TEXT_PRIMARY + "; -fx-font-size: 11;");
@@ -286,7 +270,6 @@ public class PropertiesPanel extends VBox {
             });
             getChildren().add(sideCombo);
 
-            // Tags
             getChildren().add(new Separator());
             Label tagsHeader = new Label("Labels:");
             tagsHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: " + Theme.TEXT_PRIMARY + "; -fx-font-size: 11;");

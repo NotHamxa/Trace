@@ -4,15 +4,6 @@ import com.trace.model.*;
 
 import java.util.List;
 
-/**
- * 7410 — Triple 3-input NAND gate (DIP-14).
- *
- * Pin layout:
- *   Gate 1: inputs 1, 2, 13 → output 12
- *   Gate 2: inputs 3, 4, 5  → output 6
- *   Gate 3: inputs 9, 10, 11 → output 8
- *   Pin 7: GND, Pin 14: Vcc
- */
 public class NANDGate7410 extends ICChip {
 
     public NANDGate7410() {

@@ -9,7 +9,6 @@ import javafx.scene.text.TextAlignment;
 public class DIPSwitch extends InputComponent {
     private static final long serialVersionUID = 2L;
 
-    // Layout constants — tuned for a larger, readable body with top-side pins.
     private static final double PITCH = 25;       // horizontal spacing between switches
     private static final double BODY_HEIGHT = 60; // taller body to fit a user tag above the slot
     private static final double SIDE_PAD = 10;    // left/right padding around the switch column
@@ -37,7 +36,6 @@ public class DIPSwitch extends InputComponent {
         }
     }
 
-    /** Defensive accessors so tags survive deserialization of older .trc files. */
     private String[] tagsArray() {
         if (tags == null || tags.length != numSwitches) {
             tags = new String[numSwitches];
@@ -76,14 +74,12 @@ public class DIPSwitch extends InputComponent {
         }
     }
 
-    /** Programmatically sets one switch (used by test mode). */
     public void setSwitch(int index, boolean value) {
         if (index >= 0 && index < numSwitches) {
             switches[index] = value;
         }
     }
 
-    /** Returns whether a specific switch is on (used by test mode). */
     public boolean isSwitchOn(int index) {
         if (index < 0 || index >= numSwitches) return false;
         return switches[index];
@@ -99,8 +95,6 @@ public class DIPSwitch extends InputComponent {
         double slotBot = getY() + SLOT_BOTTOM;
         for (int i = 0; i < numSwitches; i++) {
             double sx = startX + i * PITCH;
-            // Use the switch slot rectangle so the click target matches what
-            // the user sees, not the empty space around the toggles.
             if (px >= sx && px <= sx + (PITCH - 5) && py >= slotTop && py <= slotBot) {
                 return i;
             }
@@ -158,14 +152,12 @@ public class DIPSwitch extends InputComponent {
         double w = getWidth();
         double h = getHeight();
 
-        // Body — dark charcoal housing
         gc.setFill(Color.rgb(42, 43, 47));
         gc.fillRoundRect(x, y, w, h, 4, 4);
         gc.setStroke(Color.rgb(60, 63, 65));
         gc.setLineWidth(1);
         gc.strokeRoundRect(x, y, w, h, 4, 4);
 
-        // Top pin strip recess (subtle darker band where output pins exit)
         gc.setFill(Color.rgb(23, 24, 26));
         gc.fillRect(x + 2, y + 2, w - 4, 6);
 
@@ -176,7 +168,6 @@ public class DIPSwitch extends InputComponent {
             double sx = x + SIDE_PAD + i * PITCH;
             double slotW = PITCH - 5;
 
-            // User tag above the switch slot (inside the body)
             gc.setFont(Font.font("SansSerif", 10));
             gc.setFill(Color.rgb(223, 225, 229));
             String tag = ts[i] == null ? "" : ts[i];
@@ -184,7 +175,6 @@ public class DIPSwitch extends InputComponent {
                 gc.fillText(tag, sx + slotW / 2, y + TAG_Y_OFFSET);
             }
 
-            // Switch slot well
             double slotH = SLOT_BOTTOM - SLOT_TOP;
             gc.setFill(Color.rgb(15, 16, 18));
             gc.fillRoundRect(sx, y + SLOT_TOP, slotW, slotH, 2, 2);
@@ -192,24 +182,20 @@ public class DIPSwitch extends InputComponent {
             gc.setLineWidth(0.8);
             gc.strokeRoundRect(sx, y + SLOT_TOP, slotW, slotH, 2, 2);
 
-            // Switch toggle — amber when ON (classic DIP look), muted gray when OFF
             double toggleH = slotH / 2 - 2;
             double mid = y + (SLOT_TOP + SLOT_BOTTOM) / 2;
             double toggleY = switches[i] ? y + SLOT_TOP + 2 : mid;
             gc.setFill(switches[i] ? Color.rgb(232, 163, 61) : Color.rgb(95, 98, 103));
             gc.fillRoundRect(sx + 2, toggleY, slotW - 4, toggleH, 1, 1);
-            // Thin highlight line across the top of the toggle
             gc.setStroke(switches[i] ? Color.rgb(255, 200, 120, 0.7) : Color.rgb(160, 163, 168, 0.5));
             gc.setLineWidth(0.6);
             gc.strokeLine(sx + 3, toggleY + 1, sx + slotW - 3, toggleY + 1);
 
-            // Switch number below the body
             gc.setFont(Font.font("Monospaced", 9));
             gc.setFill(Color.rgb(134, 138, 145));
             gc.fillText(String.valueOf(i + 1), sx + slotW / 2, y + h + 11);
         }
 
-        // Output pins (rendered last so they draw on top of the body edge)
         for (int i = 0; i < numSwitches; i++) {
             getPin("OUT" + (i + 1)).render(gc);
         }

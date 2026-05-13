@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Parses the JSON-on-disk format into a live Circuit. */
 public final class CircuitJsonReader {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -45,10 +44,8 @@ public final class CircuitJsonReader {
         Circuit circuit = new Circuit();
         if (dto.name() != null) circuit.setName(dto.name());
 
-        // Breadboards
         List<Breadboard> bbs = new ArrayList<>();
         if (dto.breadboards() != null) {
-            // Preserve saved order by index
             BreadboardDTO[] ordered = new BreadboardDTO[dto.breadboards().size()];
             for (BreadboardDTO b : dto.breadboards()) {
                 int i = Math.max(0, Math.min(ordered.length - 1, b.index()));
@@ -64,7 +61,6 @@ public final class CircuitJsonReader {
         if (bbs.isEmpty()) bbs.add(new Breadboard(30));
         circuit.replaceBreadboards(bbs);
 
-        // Components
         Map<String, Component> byId = new HashMap<>();
         if (dto.components() != null) {
             for (ComponentDTO cd : dto.components()) {
@@ -74,7 +70,6 @@ public final class CircuitJsonReader {
             }
         }
 
-        // Wires
         if (dto.wires() != null) {
             for (WireDTO wd : dto.wires()) {
                 Pin start = resolve(wd.start(), bbs, byId);
@@ -97,7 +92,6 @@ public final class CircuitJsonReader {
             }
         }
 
-        // Tests
         TestCasesDTO t = dto.tests();
         if (t != null && t.inputs() != null && t.expected() != null) {
             circuit.setSavedTests(toStateRows(t.inputs()), toStateRows(t.expected()));

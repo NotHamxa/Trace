@@ -76,7 +76,6 @@ public class StatusBar extends HBox {
         modeLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 11; -fx-font-weight: bold;");
     }
 
-    /** Show "Update vX.Y available — Install" link. onInstall fires when clicked. */
     public void showUpdateAvailable(String version, Runnable onInstall) {
         Platform.runLater(() -> {
             updateProgress.setVisible(false);
@@ -88,7 +87,6 @@ public class StatusBar extends HBox {
         });
     }
 
-    /** Show download progress (0.0–1.0). */
     public void showUpdateProgress(double progress) {
         Platform.runLater(() -> {
             updateProgress.setVisible(true);
@@ -102,7 +100,6 @@ public class StatusBar extends HBox {
         });
     }
 
-    /** Show "Restart to update" button. onRestart fires when clicked. */
     public void showUpdateReady(Runnable onRestart) {
         Platform.runLater(() -> {
             updateProgress.setVisible(false);

@@ -12,7 +12,6 @@ public class ANDGate7408 extends ICChip {
 
     @Override
     protected PinType getDefaultPinType(int pinNumber) {
-        // Outputs: 3, 6, 8, 11
         if (pinNumber == 3 || pinNumber == 6 || pinNumber == 8 || pinNumber == 11) {
             return PinType.OUTPUT;
         }

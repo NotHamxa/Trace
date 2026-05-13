@@ -10,7 +10,6 @@ import com.trace.model.subcircuit.SubCircuitDefinition;
 import java.io.File;
 import java.io.IOException;
 
-/** Reads/writes .trs sub-circuit definition files. */
 public final class SubCircuitIO {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)

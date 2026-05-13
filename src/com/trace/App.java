@@ -57,7 +57,6 @@ public class App extends Application {
             String css = getClass().getResource("/styles/trace.css").toExternalForm();
             scene.getStylesheets().add(css);
         } catch (Exception e) {
-            // CSS not found, continue with inline styles
         }
 
         primaryStage.setTitle("Trace - Circuit Simulator");
@@ -65,17 +64,12 @@ public class App extends Application {
         primaryStage.setMinWidth(900);
         primaryStage.setMinHeight(600);
 
-        // App icon — loaded from the classpath so it shows up on the
-        // taskbar, Alt-Tab switcher, etc.
         try {
             Image appIcon = new Image(getClass().getResourceAsStream("/icons/icon.png"));
             primaryStage.getIcons().add(appIcon);
         } catch (Exception e) {
-            // Icon missing — fall through, app still runs without one.
         }
 
-        // Open maximized over the primary screen's visual bounds (respects
-        // the taskbar — undecorated + setMaximized would cover it).
         Rectangle2D vb = Screen.getPrimary().getVisualBounds();
         primaryStage.setX(vb.getMinX());
         primaryStage.setY(vb.getMinY());
@@ -86,7 +80,6 @@ public class App extends Application {
 
         showStartMenu();
 
-        // Intercept close: if we're inside a project with unsaved changes, prompt first.
         primaryStage.setOnCloseRequest(this::handleWindowClose);
 
         primaryStage.show();
@@ -126,7 +119,6 @@ public class App extends Application {
                 RecentProjects.add(file);
                 openProject(c, file);
             } else {
-                // Load failed — drop the stale entry from recents.
                 RecentProjects.remove(file);
                 startMenu.refreshRecents();
             }
@@ -162,7 +154,6 @@ public class App extends Application {
         titleBar.setTitle("Trace \u2014 Subcircuit: " + label);
     }
 
-    /** Title-bar close-button hook: returns true if the window may actually close. */
     private boolean onCloseRequested() {
         if (mainWindow != null) {
             return mainWindow.confirmDiscardChanges();
@@ -178,9 +169,6 @@ public class App extends Application {
         }
     }
 
-    // ---------- undecorated window resize ----------
-
-    /** Adds edge-drag resize + edge cursor hints to the outer root of an undecorated stage. */
     private void addResizeSupport(Region root, Stage stage) {
         final int border = 6;
         final double[] state = new double[6]; // startScreenX, startScreenY, origX, origY, origW, origH
@@ -195,7 +183,6 @@ public class App extends Application {
             if (d != 0) {
                 root.setCursor(cursorFor(d));
             } else {
-                // Leave null so descendants can set their own cursor freely
                 root.setCursor(null);
             }
         });

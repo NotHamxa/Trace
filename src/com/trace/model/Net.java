@@ -29,14 +29,12 @@ public class Net implements Serializable {
         return points;
     }
 
-    /** Returns all pins on this net: occupant component pins AND HolePins (wire endpoints). */
     public List<Pin> getConnectedPins() {
         List<Pin> connectedPins = new ArrayList<>();
         for (ContactPoint cp : points) {
             if (cp.isOccupied()) {
                 connectedPins.add(cp.getOccupant());
             }
-            // Also include HolePins (wire endpoints on bare holes)
             Pin hp = cp.getHolePinIfExists();
             if (hp != null) {
                 connectedPins.add(hp);
@@ -46,14 +44,9 @@ public class Net implements Serializable {
     }
 
     public void propagate() {
-        // Priority-based scan of visible pins (occupants + existing HolePins).
-        // HolePins are transient on ContactPoint, so after deserialization they may
-        // be invisible here — but they still write net.state via HolePin.setState().
-        // We must preserve that cached state as a fallback.
 
         LogicState drivenState = LogicState.FLOATING;
 
-        // 1. POWER/GROUND pins — highest priority
         for (Pin p : getConnectedPins()) {
             if (p.getState() != LogicState.FLOATING) {
                 PinType t = p.getType();
@@ -64,7 +57,6 @@ public class Net implements Serializable {
             }
         }
 
-        // 2. OUTPUT pins (IC outputs are authoritative)
         if (drivenState == LogicState.FLOATING) {
             for (Pin p : getConnectedPins()) {
                 if (p.getState() != LogicState.FLOATING && p.getType() == PinType.OUTPUT) {
@@ -74,7 +66,6 @@ public class Net implements Serializable {
             }
         }
 
-        // 3. Any other non-floating visible pin
         if (drivenState == LogicState.FLOATING) {
             for (Pin p : getConnectedPins()) {
                 if (p.getState() != LogicState.FLOATING) {
@@ -84,7 +75,6 @@ public class Net implements Serializable {
             }
         }
 
-        // 4. Fall back to cached net state (written by invisible HolePins via wire propagation)
         if (drivenState == LogicState.FLOATING) {
             drivenState = state;
         }
@@ -92,7 +82,6 @@ public class Net implements Serializable {
         state = drivenState;
         if (drivenState != LogicState.FLOATING) {
             for (Pin p : getConnectedPins()) {
-                // Don't override OUTPUT pins — they are set by IC.simulate()
                 if (p.getType() != PinType.OUTPUT) {
                     p.setState(drivenState);
                 }

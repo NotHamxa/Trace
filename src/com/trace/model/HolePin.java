@@ -1,10 +1,5 @@
 package com.trace.model;
 
-/**
- * A Pin that lives on a breadboard ContactPoint instead of a real component.
- * Reads/writes its state through the underlying Net so wires connected to bare
- * holes participate in normal simulation.
- */
 public class HolePin extends Pin {
     private final ContactPoint contact;
 

@@ -19,10 +19,6 @@ public class FileController {
         this.stage = stage;
     }
 
-    /**
-     * Prompts for a save location and writes the circuit. Returns the File
-     * written to on success, or null if the user cancelled / the save failed.
-     */
     public File save(Circuit circuit) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Save Circuit");
@@ -45,10 +41,6 @@ public class FileController {
         return null;
     }
 
-    /**
-     * Writes the circuit to a known file path without prompting. Used for
-     * "Save" (vs "Save As") once the current file is established.
-     */
     public boolean saveTo(Circuit circuit, File file) {
         if (file == null) return false;
         try {
@@ -62,7 +54,6 @@ public class FileController {
         }
     }
 
-    /** Prompts for a file and loads it. Returns null on cancel/error. */
     public Circuit load() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Open Circuit");
@@ -73,13 +64,11 @@ public class FileController {
         return loadFrom(file);
     }
 
-    /** Loads a specific file without a dialog (e.g. from Recents). */
     public Circuit loadFrom(File file) {
         if (file == null || !file.exists()) return null;
         try {
             Circuit circuit = Circuit.loadFromFile(file);
             circuit.setName(file.getName().replace(".trc", ""));
-            // Freshly loaded from disk → clean state.
             circuit.setModified(false);
             return circuit;
         } catch (IOException e) {

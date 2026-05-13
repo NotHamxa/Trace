@@ -6,6 +6,7 @@ import com.trace.interfaces.Interactable;
 import com.trace.model.*;
 import com.trace.model.input.DIPSwitch;
 import com.trace.model.input.PushButton;
+import com.trace.util.AppSettings;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -25,43 +26,36 @@ public class CanvasView extends Pane {
     private Circuit circuit;
     private AppMode mode = AppMode.DRAW;
 
-    // Drawing state
     private Component selectedComponent;
     private Wire selectedWire;
     private Breadboard selectedBreadboard;
     private Component placingComponent;
     private Breadboard placingBreadboard;
-    private Color wireToolColor; // null = select mode; non-null = wire-placement mode
+    private Color wireToolColor;
     private Pin wireStartPin;
     private boolean drawingWire;
     private double mouseX, mouseY;
 
-    // Dragging state
     private boolean dragging;
     private boolean draggingBreadboard;
     private double dragOffsetX, dragOffsetY;
     private int draggingPivotIndex = -1;
 
-    // Wire endpoint rerouting — 0 = start pin, 1 = end pin, -1 = not rerouting.
     private int reroutingEndpoint = -1;
 
-    // Zoom and pan
     private double zoom = 1.0;
     private double panX = 0, panY = 0;
     private boolean panning;
     private double panStartX, panStartY;
 
-    /** When true, all mouse input except pan + zoom is swallowed. Used by the sub-circuit viewer. */
     private boolean viewOnly = false;
 
     public void setViewOnly(boolean v) { this.viewOnly = v; }
 
-    // Callbacks
     private Consumer<Component> onComponentSelected;
     private Consumer<String> onStatusMessage;
     private Consumer<String> onWarningMessage;
     private Runnable onToolFinished;
-    /** Called just before any circuit-mutating action. Host uses it to snapshot for undo. */
     private Runnable onBeforeMutation;
 
     public CanvasView(Circuit circuit) {
@@ -72,7 +66,6 @@ public class CanvasView extends Pane {
 
         setStyle("-fx-background-color: " + Theme.BG_EDITOR + ";");
 
-        // Bind canvas size to pane
         canvas.widthProperty().bind(widthProperty());
         canvas.heightProperty().bind(heightProperty());
         widthProperty().addListener((obs, o, n) -> redraw());
@@ -101,7 +94,6 @@ public class CanvasView extends Pane {
         double wx = toWorldX(e.getX());
         double wy = toWorldY(e.getY());
 
-        // Middle click or Ctrl+click for panning
         if (e.getButton() == MouseButton.MIDDLE || (e.getButton() == MouseButton.PRIMARY && e.isControlDown())) {
             panning = true;
             panStartX = e.getX() - panX;
@@ -111,8 +103,6 @@ public class CanvasView extends Pane {
         }
 
         if (viewOnly) {
-            // Treat any left-button press on empty space as a pan start, so the
-            // user doesn't need to hold Ctrl to move around the read-only view.
             if (e.getButton() == MouseButton.PRIMARY) {
                 panning = true;
                 panStartX = e.getX() - panX;
@@ -131,9 +121,7 @@ public class CanvasView extends Pane {
 
     private void handleDrawPressed(MouseEvent e, double wx, double wy) {
 
-        // Right-click cancels in-progress placement, or adds/removes wire pivots.
         if (e.getButton() == MouseButton.SECONDARY) {
-            // Cancel component / breadboard placement if one is active.
             if (placingComponent != null) {
                 placingComponent = null;
                 setCursor(Cursor.DEFAULT);
@@ -167,7 +155,6 @@ public class CanvasView extends Pane {
                 redraw();
                 return;
             }
-            // Otherwise try to select a wire under the cursor and add/remove pivot
             Wire wireHit = findWireAt(wx, wy);
             if (wireHit != null) {
                 selectedWire = wireHit;
@@ -193,7 +180,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // If placing a breadboard
         if (placingBreadboard != null) {
             double g = 20;
             double snapX = Math.round(wx / g) * g;
@@ -209,9 +195,7 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // If placing a component
         if (placingComponent != null) {
-            // Refuse IC placement when the board has no free 7-column slot.
             if (placingComponent instanceof ICChip) {
                 Breadboard bb = findNearestBreadboard(wx, wy);
                 if (bb == null || findFreeIcSlot(bb, 0, (ICChip) placingComponent) < 0) {
@@ -235,7 +219,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Wire tool: clicking pins/holes starts and finishes wires
         if (wireToolColor != null) {
             Pin hitPin = findPinAt(wx, wy, 12);
             if (hitPin != null) {
@@ -255,15 +238,12 @@ public class CanvasView extends Pane {
             }
         }
 
-        // Check if clicking an endpoint of the currently selected wire —
-        // endpoint drag = reroute (reassign to a different pin). Locked wires
-        // can't be rerouted.
         if (selectedWire != null && !selectedWire.isLocked()) {
             double sx = selectedWire.getStartPin().getX();
             double sy = selectedWire.getStartPin().getY();
             double ex = selectedWire.getEndPin().getX();
             double ey = selectedWire.getEndPin().getY();
-            double r2 = 64; // 8 px pickup radius
+            double r2 = 64;
             double dsx = sx - wx, dsy = sy - wy;
             double dex = ex - wx, dey = ey - wy;
             if (dsx * dsx + dsy * dsy <= r2) {
@@ -282,8 +262,6 @@ public class CanvasView extends Pane {
             }
         }
 
-        // Check if clicking a pivot of the currently selected wire —
-        // locked wires skip pivot drag.
         if (selectedWire != null && !selectedWire.isLocked()) {
             java.util.List<double[]> wps = selectedWire.getWaypoints();
             for (int i = 0; i < wps.size(); i++) {
@@ -298,8 +276,6 @@ public class CanvasView extends Pane {
             }
         }
 
-        // Check if clicking a component (select/drag). Locked components
-        // are selectable but can't be dragged.
         Component hit = findComponentAt(wx, wy);
         if (hit != null) {
             selectedComponent = hit;
@@ -310,8 +286,6 @@ public class CanvasView extends Pane {
                 dragOffsetX = wx - hit.getX();
                 dragOffsetY = wy - hit.getY();
                 setCursor(Cursor.MOVE);
-                // Snapshot before the drag begins — restoring undo returns the
-                // component to its original position.
                 beforeMutation();
             } else {
                 statusMessage("Component is locked — press L to unlock");
@@ -321,7 +295,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Check if clicking a wire (before breadboard so wires on the board take priority)
         Wire wireHit = findWireAt(wx, wy);
         if (wireHit != null) {
             selectedWire = wireHit;
@@ -333,7 +306,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Check if clicking a breadboard border (select/drag)
         Breadboard bbHit = findBreadboardAt(wx, wy);
         if (bbHit != null) {
             selectedBreadboard = bbHit;
@@ -350,7 +322,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Empty space → start panning + deselect
         selectedComponent = null;
         selectedWire = null;
         selectedBreadboard = null;
@@ -387,8 +358,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Non-interactable component: select it so the properties panel
-        // shows live pin states, but don't re-run simulation.
         if (hit != null) {
             selectedComponent = hit;
             if (onComponentSelected != null) onComponentSelected.accept(hit);
@@ -397,7 +366,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Clicked empty space — clear selection and start panning.
         selectedComponent = null;
         if (onComponentSelected != null) onComponentSelected.accept(null);
         panning = true;
@@ -419,7 +387,6 @@ public class CanvasView extends Pane {
         double wy = toWorldY(e.getY());
 
         if (mode == AppMode.DRAW && reroutingEndpoint >= 0 && selectedWire != null) {
-            // Drag the endpoint — the ghost line is drawn in redraw() using mouseX/mouseY.
             mouseX = wx;
             mouseY = wy;
             redraw();
@@ -442,10 +409,8 @@ public class CanvasView extends Pane {
             double deltaY = newY - selectedBreadboard.getBoardY();
             if (deltaX == 0 && deltaY == 0) return;
 
-            // Find components on this breadboard and move them along
             java.util.List<Component> onBoard = findComponentsOnBreadboard(selectedBreadboard);
 
-            // Remove pins, move breadboard, move components, re-render, re-insert
             removeAllPinsFromBreadboard(selectedBreadboard);
             selectedBreadboard.setPosition(newX, newY);
             for (Component c : onBoard) {
@@ -509,7 +474,6 @@ public class CanvasView extends Pane {
             if (newPin == null) {
                 warningMessage("Reroute cancelled — drop onto a pin or hole");
             } else if (newPin == currentEnd) {
-                // No-op: released on the same pin we started from.
             } else if (newPin == otherEnd) {
                 warningMessage("Can't connect a wire to itself");
             } else if (newPin.getOwner() == otherEnd.getOwner()) {
@@ -528,7 +492,6 @@ public class CanvasView extends Pane {
             return;
         }
 
-        // Handle PushButton release in simulate mode
         if (mode == AppMode.SIMULATE) {
             double wx = toWorldX(e.getX());
             double wy = toWorldY(e.getY());
@@ -569,7 +532,6 @@ public class CanvasView extends Pane {
         double oldZoom = zoom;
         zoom = Math.max(0.3, Math.min(3.0, zoom * zoomFactor));
 
-        // Zoom towards mouse position
         double mouseScreenX = e.getX();
         double mouseScreenY = e.getY();
         panX = mouseScreenX - (mouseScreenX - panX) * (zoom / oldZoom);
@@ -596,6 +558,9 @@ public class CanvasView extends Pane {
             beforeMutation();
             Wire wire = new Wire(wireStartPin, endPin);
             if (wireToolColor != null) wire.setColor(wireToolColor);
+            if (AppSettings.isAutoBendWires()) {
+                applyAutoBend(wire);
+            }
             circuit.addWire(wire);
             statusMessage("Wire connected: " + wireStartPin.getOwner().getName() + " → " + endPin.getOwner().getName());
         } catch (InvalidConnectionException ex) {
@@ -607,26 +572,33 @@ public class CanvasView extends Pane {
         }
     }
 
+    private void applyAutoBend(Wire wire) {
+        double sx = wire.getStartPin().getX();
+        double sy = wire.getStartPin().getY();
+        double ex = wire.getEndPin().getX();
+        double ey = wire.getEndPin().getY();
+        if (sx == ex || sy == ey) return;
+        double midX = (sx + ex) / 2.0;
+        wire.getWaypoints().add(new double[]{midX, sy});
+        wire.getWaypoints().add(new double[]{midX, ey});
+    }
+
     public void redraw() {
         double w = canvas.getWidth();
         double h = canvas.getHeight();
 
-        // Background — IntelliJ editor color
         gc.setFill(Color.web(Theme.BG_EDITOR));
         gc.fillRect(0, 0, w, h);
 
-        // Draw grid pattern
         gc.save();
         gc.translate(panX, panY);
         gc.scale(zoom, zoom);
 
         drawGrid();
 
-        // 1. Draw all breadboards
         for (Breadboard bb : circuit.getBreadboards()) {
             bb.render(gc);
 
-            // Selection highlight for breadboard
             if (bb == selectedBreadboard) {
                 gc.setStroke(Color.rgb(0, 120, 212, 0.8));
                 gc.setLineWidth(2);
@@ -637,15 +609,11 @@ public class CanvasView extends Pane {
             }
         }
 
-        // 2. Draw wires
         boolean simMode = mode == AppMode.SIMULATE;
         for (Wire wire : circuit.getWires()) {
-            // While rerouting, draw the selected wire with the dragged endpoint
-            // snapped to the mouse so the user sees a live preview.
             boolean isRerouting = (wire == selectedWire) && reroutingEndpoint >= 0;
 
             if (wire == selectedWire) {
-                // Glow underneath the wire, following waypoints
                 gc.setStroke(Color.rgb(0, 180, 255, 0.7));
                 gc.setLineWidth(8);
                 gc.beginPath();
@@ -664,8 +632,6 @@ public class CanvasView extends Pane {
             }
 
             if (isRerouting) {
-                // Skip the wire's own render — it'd draw from the original pins.
-                // Draw a dashed preview along the same path instead.
                 gc.setStroke(wire.getColor());
                 gc.setLineWidth(2);
                 gc.setLineDashes(6, 5);
@@ -688,13 +654,10 @@ public class CanvasView extends Pane {
             }
 
             if (wire == selectedWire) {
-                // Pivot handles
                 gc.setFill(Color.rgb(0, 180, 255));
                 for (double[] wp : wire.getWaypoints()) {
                     gc.fillOval(wp[0] - 4, wp[1] - 4, 8, 8);
                 }
-                // Endpoint handles — bigger, white-ringed, so it's obvious they
-                // can be dragged to reroute the wire.
                 double sx = wire.getStartPin().getX();
                 double sy = wire.getStartPin().getY();
                 double ex = wire.getEndPin().getX();
@@ -711,11 +674,9 @@ public class CanvasView extends Pane {
             }
         }
 
-        // 3. Draw components
         for (Component c : circuit.getComponents()) {
             c.render(gc);
 
-            // Selection highlight
             if (c == selectedComponent) {
                 gc.setStroke(Color.rgb(0, 120, 212, 0.8));
                 gc.setLineWidth(2);
@@ -724,27 +685,23 @@ public class CanvasView extends Pane {
                 gc.setLineDashes();
             }
 
-            // Locked badge: a tiny padlock in the top-right corner of the component.
             if (c.isLocked()) {
                 drawLockBadge(c.getX() + c.getWidth() - 10, c.getY() - 2);
             }
         }
 
-        // 4. Ghost component being placed
         if (placingComponent != null) {
             gc.setGlobalAlpha(0.6);
             placingComponent.render(gc);
             gc.setGlobalAlpha(1.0);
         }
 
-        // 4b. Ghost breadboard being placed
         if (placingBreadboard != null) {
             gc.setGlobalAlpha(0.5);
             placingBreadboard.render(gc);
             gc.setGlobalAlpha(1.0);
         }
 
-        // 5. Wire being drawn
         if (drawingWire && wireStartPin != null) {
             gc.setStroke(wireToolColor != null ? wireToolColor : Color.rgb(200, 200, 200, 0.7));
             gc.setLineWidth(2);
@@ -756,16 +713,12 @@ public class CanvasView extends Pane {
         gc.restore();
     }
 
-    /** Small padlock badge drawn at (x,y) as the top-left of a 10x10 box. */
     private void drawLockBadge(double x, double y) {
-        // Shackle (arc)
         gc.setStroke(Color.rgb(255, 210, 80));
         gc.setLineWidth(1.2);
         gc.strokeArc(x + 1.5, y, 7, 6, 0, 180, javafx.scene.shape.ArcType.OPEN);
-        // Body
         gc.setFill(Color.rgb(255, 210, 80));
         gc.fillRoundRect(x, y + 4, 10, 6, 2, 2);
-        // Keyhole
         gc.setFill(Color.rgb(60, 45, 0));
         gc.fillOval(x + 4, y + 6, 2, 2);
     }
@@ -791,7 +744,6 @@ public class CanvasView extends Pane {
     }
 
     private Component findComponentAt(double x, double y) {
-        // Iterate in reverse for top-most first
         for (int i = circuit.getComponents().size() - 1; i >= 0; i--) {
             Component c = circuit.getComponents().get(i);
             if (c.containsPoint(x, y)) {
@@ -802,7 +754,6 @@ public class CanvasView extends Pane {
     }
 
     private Breadboard findBreadboardAt(double x, double y) {
-        // Only select breadboard when clicking on the border/outskirts, not interior
         java.util.List<Breadboard> bbs = circuit.getBreadboards();
         for (int i = bbs.size() - 1; i >= 0; i--) {
             if (bbs.get(i).containsPointOnBorder(x, y)) {
@@ -813,7 +764,6 @@ public class CanvasView extends Pane {
     }
 
     private Pin findPinAt(double x, double y, double radius) {
-        // 1. Component pins take priority
         for (Component c : circuit.getComponents()) {
             for (Pin p : c.getPins()) {
                 double dx = p.getX() - x;
@@ -823,7 +773,6 @@ public class CanvasView extends Pane {
                 }
             }
         }
-        // 2. Bare breadboard holes — search all breadboards
         double r2 = radius * radius;
         for (Breadboard bb : circuit.getBreadboards()) {
             for (int col = 0; col < bb.getRows(); col++) {
@@ -837,7 +786,6 @@ public class CanvasView extends Pane {
                     }
                 }
             }
-            // 3. Power rail holes
             PowerRail[] rails = { bb.getTopPositive(), bb.getTopNegative(), bb.getBottomPositive(), bb.getBottomNegative() };
             for (PowerRail rail : rails) {
                 for (ContactPoint cp : rail.getPoints()) {
@@ -852,7 +800,6 @@ public class CanvasView extends Pane {
         return null;
     }
 
-    /** Inserts a component's pins into any breadboard holes (or rail holes) they sit on. */
     private void insertPinsIntoHoles(Component c) {
         if (c instanceof ICChip) {
             attachIcWires((ICChip) c);
@@ -875,17 +822,7 @@ public class CanvasView extends Pane {
         }
     }
 
-    /**
-     * Wires an IC into its breadboard. Instead of inserting the IC's pins directly
-     * into ContactPoints by proximity, this creates 14 explicit Wire objects — one
-     * per pin — that run through the IC slot to the corresponding breadboard hole:
-     *   pins 1..7  → row 'f' (letter 5), columns startCol..startCol+6
-     *   pins 14..8 → row 'e' (letter 4), columns startCol..startCol+6
-     * Uses the IC's current X and the breadboard's hole grid to pick the column
-     * deterministically — no distance-based matching, no floating-point surprises.
-     */
     private void attachIcWires(ICChip ic) {
-        // Skip if this IC already has slot wires (e.g. after undo/redo deserialization)
         for (Wire w : circuit.getWires()) {
             Pin s = w.getStartPin();
             Pin e = w.getEndPin();
@@ -897,12 +834,10 @@ public class CanvasView extends Pane {
                                               ic.getY() + ic.getHeight() / 2);
         if (bb == null) return;
 
-        // snappedX = bb.getHoleX(startCol) - 10, so startCol = (ic.getX() + 10 - boardX) / HOLE_SPACING
         int half = ic.getPinCount() / 2;
         int startCol = (int) Math.round((ic.getX() + 10 - bb.getBoardX()) / Breadboard.HOLE_SPACING);
         if (startCol < 0 || startCol + half - 1 >= bb.getRows()) return;
 
-        // Bottom row: pins 1..half land on row 'f' (letter index 5)
         for (int i = 0; i < half; i++) {
             Pin icPin = ic.getPin(String.valueOf(i + 1));
             ContactPoint cp = bb.getHole(startCol + i, 5);
@@ -911,7 +846,6 @@ public class CanvasView extends Pane {
             hp.setPosition(cp.getCanvasX(), cp.getCanvasY());
             circuit.addWire(new Wire(icPin, hp));
         }
-        // Top row: highest pin at startCol, (half+1) rightmost, row 'e' (letter 4)
         for (int i = 0; i < half; i++) {
             Pin icPin = ic.getPin(String.valueOf(ic.getPinCount() - i));
             ContactPoint cp = bb.getHole(startCol + i, 4);
@@ -922,7 +856,6 @@ public class CanvasView extends Pane {
         }
     }
 
-    /** Removes every wire that links this IC's pins to a breadboard hole. */
     private void detachIcWires(ICChip ic) {
         java.util.List<Wire> toRemove = new java.util.ArrayList<>();
         for (Wire w : circuit.getWires()) {
@@ -940,10 +873,9 @@ public class CanvasView extends Pane {
     }
 
     private ContactPoint findHoleAt(double x, double y) {
-        double tol = 4; // pin must land within 4 px of a hole center
+        double tol = 4;
         double t2 = tol * tol;
         for (Breadboard bb : circuit.getBreadboards()) {
-            // Main grid
             for (int col = 0; col < bb.getRows(); col++) {
                 for (int letter = 0; letter < 10; letter++) {
                     ContactPoint cp = bb.getHole(col, letter);
@@ -953,7 +885,6 @@ public class CanvasView extends Pane {
                     if (dx * dx + dy * dy <= t2) return cp;
                 }
             }
-            // Power rails
             PowerRail[] rails = { bb.getTopPositive(), bb.getTopNegative(), bb.getBottomPositive(), bb.getBottomNegative() };
             for (PowerRail rail : rails) {
                 for (ContactPoint cp : rail.getPoints()) {
@@ -966,20 +897,13 @@ public class CanvasView extends Pane {
         return null;
     }
 
-    /**
-     * Finds all components attached to this breadboard — either via proximity-inserted
-     * pins (switches, LEDs, etc.) or via IC-style HolePin wires (chips use slot wires
-     * instead of direct insertion, so they're not caught by {@code cp.getOccupant()}).
-     */
     private java.util.List<Component> findComponentsOnBreadboard(Breadboard bb) {
         java.util.Set<Component> result = new java.util.LinkedHashSet<>();
-        // 1. Directly-inserted pins
         for (ContactPoint cp : bb.getAllContactPoints()) {
             if (cp.getOccupant() != null && cp.getOccupant().getOwner() != null) {
                 result.add(cp.getOccupant().getOwner());
             }
         }
-        // 2. ICs wired to this board via HolePin slot wires
         java.util.Set<ContactPoint> bbPoints = new java.util.HashSet<>(bb.getAllContactPoints());
         for (Wire w : circuit.getWires()) {
             Pin s = w.getStartPin();
@@ -995,7 +919,6 @@ public class CanvasView extends Pane {
         return new java.util.ArrayList<>(result);
     }
 
-    /** Removes all component pins that are currently inserted into a specific breadboard's holes. */
     private void removeAllPinsFromBreadboard(Breadboard bb) {
         for (ContactPoint cp : bb.getAllContactPoints()) {
             if (cp.getOccupant() != null) {
@@ -1004,17 +927,14 @@ public class CanvasView extends Pane {
         }
     }
 
-    /** Re-inserts component pins into a breadboard's holes after it has been moved. */
     private void reinsertAllPinsIntoBreadboard(Breadboard bb) {
         for (Component c : circuit.getComponents()) {
-            // ICs are wired in, not proximity-inserted — rebuild their slot wires
             if (c instanceof ICChip) {
                 detachIcWires((ICChip) c);
                 attachIcWires((ICChip) c);
                 continue;
             }
             for (Pin p : c.getPins()) {
-                // Check main grid
                 for (int col = 0; col < bb.getRows(); col++) {
                     for (int letter = 0; letter < 10; letter++) {
                         ContactPoint cp = bb.getHole(col, letter);
@@ -1024,7 +944,6 @@ public class CanvasView extends Pane {
                         if (dx * dx + dy * dy <= 16) cp.insertPin(p);
                     }
                 }
-                // Check power rails
                 PowerRail[] rails = { bb.getTopPositive(), bb.getTopNegative(), bb.getBottomPositive(), bb.getBottomNegative() };
                 for (PowerRail rail : rails) {
                     for (ContactPoint cp : rail.getPoints()) {
@@ -1037,7 +956,6 @@ public class CanvasView extends Pane {
         }
     }
 
-    /** Snap a component to the nearest breadboard. ICs auto-straddle the center gap. */
     private double[] snapForPlacement(Component c, double wx, double wy) {
         if (c instanceof ICChip) {
             ICChip ic = (ICChip) c;
@@ -1047,8 +965,6 @@ public class CanvasView extends Pane {
             double targetPinX = wx + c.getWidth() / 2 - (half - 1) * pinSpacing / 2.0;
             int nearestCol = (int) Math.round((targetPinX - bb.getHoleX(0)) / pinSpacing);
             nearestCol = Math.max(0, Math.min(bb.getRows() - half, nearestCol));
-            // Slide to the nearest free slot so ICs can't overlap. Falls back to the
-            // preferred column if no free slot exists — the commit path will refuse.
             int freeCol = findFreeIcSlot(bb, nearestCol, (ICChip) c);
             int useCol = freeCol >= 0 ? freeCol : nearestCol;
             double snappedX = bb.getHoleX(useCol) - 10;
@@ -1059,7 +975,6 @@ public class CanvasView extends Pane {
         return new double[]{Math.round(wx / g) * g, Math.round(wy / g) * g};
     }
 
-    /** True if no other IC on {@code bb} overlaps the column range needed by {@code ic}. */
     private boolean isIcSlotFree(Breadboard bb, int startCol, ICChip ic) {
         int half = ic.getPinCount() / 2;
         for (Component c : circuit.getComponents()) {
@@ -1077,7 +992,6 @@ public class CanvasView extends Pane {
         return true;
     }
 
-    /** Finds the free IC slot closest to {@code preferredCol}, or -1 if the board has no room. */
     private int findFreeIcSlot(Breadboard bb, int preferredCol, ICChip ic) {
         int max = bb.getRows() - ic.getPinCount() / 2;
         if (max < 0) return -1;
@@ -1090,7 +1004,6 @@ public class CanvasView extends Pane {
         return -1;
     }
 
-    /** Finds the breadboard closest to the given world coordinate. */
     private Breadboard findNearestBreadboard(double wx, double wy) {
         Breadboard nearest = null;
         double bestDist = Double.MAX_VALUE;
@@ -1168,7 +1081,6 @@ public class CanvasView extends Pane {
                 warningMessage("Simulation error: " + ex.getMessage());
             }
         } else {
-            // Reset all states when leaving simulate mode
             circuit.resetStates();
         }
         redraw();
@@ -1184,7 +1096,6 @@ public class CanvasView extends Pane {
         drawingWire = false;
         wireStartPin = null;
         reroutingEndpoint = -1;
-        // Force a render so contact points get canvas positions, then bind pins
         redraw();
         for (Component c : circuit.getComponents()) {
             insertPinsIntoHoles(c);
@@ -1200,7 +1111,6 @@ public class CanvasView extends Pane {
         return selectedWire;
     }
 
-    /** Toggles the locked state of whatever is currently selected. Used by the L keybind. */
     public boolean toggleLockOnSelection() {
         if (selectedComponent != null) {
             beforeMutation();
@@ -1216,8 +1126,6 @@ public class CanvasView extends Pane {
             boolean now = !selectedWire.isLocked();
             selectedWire.setLocked(now);
             statusMessage("Wire " + (now ? "locked" : "unlocked"));
-            // Force a properties-panel refresh; wires don't flow through onComponentSelected
-            // so we re-notify it via the current selection (may be null).
             if (onComponentSelected != null) onComponentSelected.accept(selectedComponent);
             redraw();
             return true;
@@ -1225,7 +1133,6 @@ public class CanvasView extends Pane {
         return false;
     }
 
-    /** Directly sets the locked state on the current selection — used by the properties-panel toggle. */
     public void setLockOnSelection(boolean locked) {
         if (selectedComponent != null && selectedComponent.isLocked() != locked) {
             beforeMutation();
@@ -1238,11 +1145,6 @@ public class CanvasView extends Pane {
         }
     }
 
-    /**
-     * Changes the pin side on the selected input component. Rips its pins
-     * out of any breadboard holes first and reinserts them afterward so
-     * column-net membership follows the new positions.
-     */
     public void setPinSideOnSelection(PinSide side) {
         if (selectedComponent instanceof InputComponent) {
             InputComponent ic = (InputComponent) selectedComponent;
@@ -1287,7 +1189,6 @@ public class CanvasView extends Pane {
         this.onBeforeMutation = handler;
     }
 
-    /** Called at every mutation site in CanvasView before state changes. */
     private void beforeMutation() {
         if (onBeforeMutation != null) onBeforeMutation.run();
     }

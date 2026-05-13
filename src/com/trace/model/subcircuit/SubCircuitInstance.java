@@ -13,15 +13,6 @@ import javafx.scene.text.TextAlignment;
 
 import java.util.List;
 
-/**
- * A placed reference to a saved SubCircuitDefinition. Renders as a box with
- * external pins matching the definition's input/output ports; simulating it
- * runs the inner circuit and shuttles signals through the ports.
- *
- * Pin labels exposed externally match the port labels ("A", "Cin", "SUM", …).
- * If the backing definition is missing (file gone, broken reference), the
- * instance renders as a red placeholder and simulate() is a no-op.
- */
 public class SubCircuitInstance extends Component {
     private static final double ROW_H = 22;
     private static final double HEADER_H = 20;
@@ -114,7 +105,6 @@ public class SubCircuitInstance extends Component {
         gc.setLineWidth(1.2);
         gc.strokeRoundRect(x, y, w, h, 6, 6);
 
-        // Header
         gc.setFill(broken ? Color.rgb(219, 92, 92, 0.25) : Color.rgb(53, 116, 240, 0.25));
         gc.fillRoundRect(x, y, w, HEADER_H, 6, 6);
         gc.setFill(Color.rgb(223, 225, 229));
@@ -130,7 +120,6 @@ public class SubCircuitInstance extends Component {
             return;
         }
 
-        // Pin labels inside the box
         gc.setFont(Font.font("Monospaced", 9));
         gc.setFill(Color.rgb(200, 203, 208));
         List<InputPort> ins = definition.inputPorts();

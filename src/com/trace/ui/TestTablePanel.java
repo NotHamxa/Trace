@@ -19,16 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Truth-table test panel. Scans the circuit for labelled input/output
- * signals, lets the user define test-case rows (H / L per signal), then
- * runs every row against the simulator and reports pass/fail.
- */
 public class TestTablePanel extends VBox {
 
-    // ---- data model --------------------------------------------------------
-
-    /** One column in the truth table — maps to a single bit on a component. */
     static class SignalInfo {
         final Component component;
         final int bitIndex;      // -1 for single-pin components (ToggleSwitch, LED)
@@ -43,15 +35,12 @@ public class TestTablePanel extends VBox {
         }
     }
 
-    /** One row in the truth table. */
     static class TestRow {
         LogicState[] inputs;
         LogicState[] expected;   // null entry = don't-care
         LogicState[] actual;     // filled after a run
         Boolean passed;          // null = not yet run
     }
-
-    // ---- fields ------------------------------------------------------------
 
     private Circuit circuit;
     private final Runnable onRedraw;
@@ -63,8 +52,6 @@ public class TestTablePanel extends VBox {
     private GridPane grid;
     private Label summaryLabel;
 
-    // ---- styling constants -------------------------------------------------
-
     private static final String CELL_BASE =
             "-fx-padding: 4 10; -fx-border-color: #393b40; -fx-border-width: 0 0 1 1; " +
             "-fx-alignment: center; -fx-font-size: 12; -fx-font-family: 'Monospaced';";
@@ -72,8 +59,6 @@ public class TestTablePanel extends VBox {
             CELL_BASE + " -fx-background-color: #23242a; -fx-text-fill: #dfe1e5; -fx-font-weight: bold;";
     private static final String ROW_NUM_STYLE =
             CELL_BASE + " -fx-background-color: #1e1f22; -fx-text-fill: #868a91;";
-
-    // ---- constructor -------------------------------------------------------
 
     public TestTablePanel(Circuit circuit, Runnable onRedraw) {
         this.circuit = circuit;
@@ -84,7 +69,6 @@ public class TestTablePanel extends VBox {
         setPadding(new Insets(6, 10, 6, 10));
         setSpacing(6);
 
-        // -- button bar --
         HBox bar = new HBox(8);
         bar.setAlignment(Pos.CENTER_LEFT);
 
@@ -113,7 +97,6 @@ public class TestTablePanel extends VBox {
         bar.getChildren().addAll(refreshBtn, addBtn, removeBtn, autoFillBtn, runBtn, spacer, summaryLabel);
         getChildren().add(bar);
 
-        // -- guidance --
         Label guide = new Label(
                 "Click input cells to toggle between 1 and 0.  " +
                 "Click output cells to cycle: 1 \u2192 0 \u2192 D (don't care) \u2192 1.  " +
@@ -122,7 +105,6 @@ public class TestTablePanel extends VBox {
         guide.setWrapText(true);
         getChildren().add(guide);
 
-        // -- table area --
         grid = new GridPane();
         grid.setStyle("-fx-background-color: #1e1f22;");
 
@@ -146,8 +128,6 @@ public class TestTablePanel extends VBox {
         if (rows.isEmpty()) addRow();
         rebuildGrid();
     }
-
-    // ---- signal discovery --------------------------------------------------
 
     void refreshSignals() {
         inputs.clear();
@@ -195,7 +175,6 @@ public class TestTablePanel extends VBox {
             }
         }
 
-        // Trim or extend existing rows to match new signal counts
         for (TestRow r : rows) {
             r.inputs   = resizeArray(r.inputs,   inputs.size(),  LogicState.LOW);
             r.expected = resizeArray(r.expected,  outputs.size(), null);
@@ -203,8 +182,6 @@ public class TestTablePanel extends VBox {
             r.passed   = null;
         }
     }
-
-    // ---- persistence --------------------------------------------------------
 
     private void loadSavedTests() {
         List<LogicState[]> si = circuit.getSavedTestInputs();
@@ -230,15 +207,12 @@ public class TestTablePanel extends VBox {
         circuit.setSavedTests(si, se);
     }
 
-    // ---- row management ----------------------------------------------------
-
     private void addRow() {
         TestRow r = new TestRow();
         r.inputs   = new LogicState[inputs.size()];
         r.expected = new LogicState[outputs.size()];
         r.actual   = new LogicState[outputs.size()];
         for (int i = 0; i < inputs.size(); i++)  r.inputs[i] = LogicState.LOW;
-        // expected starts as null (don't-care / X)
         rows.add(r);
     }
 
@@ -246,12 +220,10 @@ public class TestTablePanel extends VBox {
         if (!rows.isEmpty()) rows.remove(rows.size() - 1);
     }
 
-    /** Replaces the current rows with every possible input combination (2^n rows). */
     private void autoFillCombinations() {
         int n = inputs.size();
         if (n == 0) return;
         if (n > 16) {
-            // Safety cap — 2^16 = 65 536 rows is already a lot
             summaryLabel.setText("Too many inputs (" + n + ") for auto fill (max 16)");
             summaryLabel.setStyle("-fx-text-fill: " + Theme.ACCENT_YELLOW + "; -fx-font-size: 12;");
             return;
@@ -264,16 +236,12 @@ public class TestTablePanel extends VBox {
             r.expected = new LogicState[outputs.size()];
             r.actual   = new LogicState[outputs.size()];
             for (int bit = 0; bit < n; bit++) {
-                // MSB is the leftmost column (bit index 0)
                 boolean high = ((combo >> (n - 1 - bit)) & 1) == 1;
                 r.inputs[bit] = high ? LogicState.HIGH : LogicState.LOW;
             }
-            // expected outputs default to don't-care
             rows.add(r);
         }
     }
-
-    // ---- grid rebuild ------------------------------------------------------
 
     private void rebuildGrid() {
         grid.getChildren().clear();
@@ -289,7 +257,6 @@ public class TestTablePanel extends VBox {
 
         int colCount = 1 + inputs.size() + 1 + outputs.size() + 1; // # | inputs | sep | outputs | result
 
-        // --- Row 0: group headers ---
         Label hashHdr = headerCell("#");
         grid.add(hashHdr, 0, 0, 1, 2); // span 2 rows
 
@@ -299,7 +266,6 @@ public class TestTablePanel extends VBox {
             grid.add(ih, 1, 0, inputs.size(), 1);
         }
 
-        // separator column
         Label sep = new Label();
         sep.setMinWidth(6);
         sep.setMaxWidth(6);
@@ -314,7 +280,6 @@ public class TestTablePanel extends VBox {
         Label resHdr = headerCell("Result");
         grid.add(resHdr, 2 + inputs.size() + outputs.size(), 0, 1, 2);
 
-        // --- Row 1: individual signal headers ---
         for (int i = 0; i < inputs.size(); i++) {
             grid.add(headerCell(inputs.get(i).label), 1 + i, 1);
         }
@@ -322,20 +287,17 @@ public class TestTablePanel extends VBox {
             grid.add(headerCell(outputs.get(i).label), 2 + inputs.size() + i, 1);
         }
 
-        // --- Data rows ---
         for (int r = 0; r < rows.size(); r++) {
             TestRow row = rows.get(r);
             final int rowIdx = r;
             int gridRow = r + 2;
 
-            // Row number
             Label rn = new Label(String.valueOf(r + 1));
             rn.setMaxWidth(Double.MAX_VALUE);
             rn.setAlignment(Pos.CENTER);
             rn.setStyle(ROW_NUM_STYLE);
             grid.add(rn, 0, gridRow);
 
-            // Input cells
             for (int i = 0; i < inputs.size(); i++) {
                 final int col = i;
                 Label cell = stateCell(row.inputs[i], false, false);
@@ -348,14 +310,12 @@ public class TestTablePanel extends VBox {
                 grid.add(cell, 1 + i, gridRow);
             }
 
-            // Output cells
             for (int i = 0; i < outputs.size(); i++) {
                 final int col = i;
                 boolean mismatch = row.passed != null && row.expected[col] != null
                         && row.actual[col] != null && row.expected[col] != row.actual[col];
                 Label cell = stateCell(row.expected[i], true, mismatch);
 
-                // Show actual value on mismatch
                 if (mismatch) {
                     cell.setText(stateText(row.expected[col]) + " (" + stateText(row.actual[col]) + ")");
                 }
@@ -369,7 +329,6 @@ public class TestTablePanel extends VBox {
                 grid.add(cell, 2 + inputs.size() + i, gridRow);
             }
 
-            // Result cell
             Label res = resultCell(row);
             grid.add(res, 2 + inputs.size() + outputs.size(), gridRow);
         }
@@ -377,12 +336,9 @@ public class TestTablePanel extends VBox {
         updateSummary();
     }
 
-    // ---- test runner -------------------------------------------------------
-
     private void runAllTests() {
         if (inputs.isEmpty() && outputs.isEmpty()) return;
 
-        // Save original input states
         Map<ToggleSwitch, Boolean> savedToggles = new HashMap<>();
         Map<DIPSwitch, boolean[]> savedDips = new HashMap<>();
         for (SignalInfo sig : inputs) {
@@ -396,9 +352,7 @@ public class TestTablePanel extends VBox {
             }
         }
 
-        // Run each test row
         for (TestRow row : rows) {
-            // Apply inputs
             for (int i = 0; i < inputs.size(); i++) {
                 SignalInfo sig = inputs.get(i);
                 boolean high = row.inputs[i] == LogicState.HIGH;
@@ -411,17 +365,14 @@ public class TestTablePanel extends VBox {
                 }
             }
 
-            // Simulate
             try {
                 circuit.simulate();
             } catch (Exception ex) {
-                // Mark row as failed on simulation error
                 row.passed = false;
                 row.actual = new LogicState[outputs.size()];
                 continue;
             }
 
-            // Read outputs and compare
             row.passed = true;
             for (int i = 0; i < outputs.size(); i++) {
                 SignalInfo sig = outputs.get(i);
@@ -439,14 +390,12 @@ public class TestTablePanel extends VBox {
                 }
                 row.actual[i] = actual;
 
-                // Compare (null expected = don't care)
                 if (row.expected[i] != null && row.expected[i] != actual) {
                     row.passed = false;
                 }
             }
         }
 
-        // Restore original states
         for (Map.Entry<ToggleSwitch, Boolean> e : savedToggles.entrySet()) {
             e.getKey().setState(e.getValue());
         }
@@ -461,8 +410,6 @@ public class TestTablePanel extends VBox {
 
         if (onRedraw != null) onRedraw.run();
     }
-
-    // ---- cell factories ----------------------------------------------------
 
     private Label headerCell(String text) {
         Label l = new Label(text);
@@ -511,8 +458,6 @@ public class TestTablePanel extends VBox {
         }
         return l;
     }
-
-    // ---- helpers ------------------------------------------------------------
 
     private static String stateText(LogicState s) {
         if (s == null)                return "D";

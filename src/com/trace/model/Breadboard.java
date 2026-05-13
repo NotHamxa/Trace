@@ -10,12 +10,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Horizontal solderless breadboard.
- *  - "rows" is the long axis (horizontal column count, e.g. 30 columns numbered 1..N).
- *  - There are 10 lettered hole-rows (a-j) split into two banks of 5 by a center gap.
- *  - Two power rails (+/-) sit above and below the main grid.
- */
 public class Breadboard implements Serializable, Renderable {
     private int rows;            // long axis: number of numbered columns
     private int cols;            // short axis: 10 lettered rows (a-j)
@@ -24,7 +18,6 @@ public class Breadboard implements Serializable, Renderable {
     private PowerRail bottomPositive, bottomNegative;
     private List<Net> allNets;
 
-    // Layout constants — all multiples of HOLE_SPACING so the world grid aligns
     public static final double HOLE_SPACING = 20;
     public static final double BOARD_PADDING = 40;
     public static final double GAP_HEIGHT = 20;   // vertical gap between a-e and f-j banks
@@ -51,7 +44,6 @@ public class Breadboard implements Serializable, Renderable {
     public double getBoardX() { return boardX; }
     public double getBoardY() { return boardY; }
 
-    /** Returns true if the given world coordinate is on the border/outskirts of this breadboard. */
     public boolean containsPointOnBorder(double x, double y) {
         double x0 = boardX - 20;
         double y0 = boardY - 20;
@@ -59,16 +51,13 @@ public class Breadboard implements Serializable, Renderable {
         double h = getBoardHeight();
         double margin = 15; // how thick the draggable border strip is
 
-        // Must be inside outer bounds
         if (x < x0 || x > x0 + w || y < y0 || y > y0 + h) return false;
 
-        // Must be outside inner area (i.e. on the border strip)
         boolean insideInner = x > x0 + margin && x < x0 + w - margin
                            && y > y0 + margin && y < y0 + h - margin;
         return !insideInner;
     }
 
-    /** Returns true if the given world coordinate is anywhere inside this breadboard's bounding box. */
     public boolean containsPoint(double x, double y) {
         double x0 = boardX - 20;
         double y0 = boardY - 20;
@@ -77,7 +66,6 @@ public class Breadboard implements Serializable, Renderable {
 
     private void initializeConnections() {
         for (int col = 0; col < rows; col++) {
-            // Each numbered column has two independent nets (a-e and f-j).
             Net topNet = new Net();
             allNets.add(topNet);
             for (int letter = 0; letter < 5; letter++) {
@@ -116,7 +104,6 @@ public class Breadboard implements Serializable, Renderable {
 
     public List<Net> getAllNets() { return allNets; }
 
-    /** All contact points (main grid + power rails). */
     public List<ContactPoint> getAllContactPoints() {
         List<ContactPoint> all = new ArrayList<>();
         for (int c = 0; c < rows; c++)
@@ -141,12 +128,10 @@ public class Breadboard implements Serializable, Renderable {
         }
     }
 
-    /** Horizontal X for a numbered column 0..rows-1. */
     public double getHoleX(int col) {
         return boardX + col * HOLE_SPACING;
     }
 
-    /** Vertical Y for a lettered hole-row 0..9. The grid sits below the two top power rails. */
     public double getHoleY(int letter) {
         double gridStartY = boardY + 2 * HOLE_SPACING + RAIL_GAP; // two power rail rows + gap
         double y = gridStartY + letter * HOLE_SPACING;
@@ -159,7 +144,6 @@ public class Breadboard implements Serializable, Renderable {
     }
 
     public double getBoardHeight() {
-        // 2 top rails + RAIL_GAP + 10 letter rows + GAP_HEIGHT + RAIL_GAP + 2 bottom rails + 20px bottom margin
         return 2 * HOLE_SPACING + RAIL_GAP + 9 * HOLE_SPACING + GAP_HEIGHT + RAIL_GAP + 2 * HOLE_SPACING + HOLE_SPACING;
     }
 
@@ -168,20 +152,17 @@ public class Breadboard implements Serializable, Renderable {
         double totalWidth = getBoardWidth();
         double totalHeight = getBoardHeight();
 
-        // Board background — dark to match IntelliJ theme
         gc.setFill(Color.rgb(40, 42, 46));
         gc.fillRoundRect(boardX - 20, boardY - 20, totalWidth, totalHeight, 10, 10);
         gc.setStroke(Color.rgb(60, 62, 66));
         gc.setLineWidth(2);
         gc.strokeRoundRect(boardX - 20, boardY - 20, totalWidth, totalHeight, 10, 10);
 
-        // Top power rails (two horizontal rows: + then -)
         double topPosY = boardY;
         double topNegY = boardY + HOLE_SPACING;
         renderPowerRail(gc, topPosY, true, topPositive);
         renderPowerRail(gc, topNegY, false, topNegative);
 
-        // Main grid letter labels (a-j) on the left
         gc.setFill(Color.rgb(130, 138, 145));
         gc.setFont(Font.font("Monospaced", 9));
         gc.setTextAlign(TextAlignment.RIGHT);
@@ -190,7 +171,6 @@ public class Breadboard implements Serializable, Renderable {
             gc.fillText(labels[letter], boardX - 8, getHoleY(letter) + 3);
         }
 
-        // Numbered column labels (1..N) above main grid, every 5
         gc.setTextAlign(TextAlignment.CENTER);
         double labelY = getHoleY(0) - 8;
         for (int col = 0; col < rows; col++) {
@@ -199,13 +179,11 @@ public class Breadboard implements Serializable, Renderable {
             }
         }
 
-        // Center gap line through the middle
         double gapMidY = (getHoleY(4) + getHoleY(5)) / 2;
         gc.setStroke(Color.rgb(60, 62, 66));
         gc.setLineWidth(1);
         gc.strokeLine(getHoleX(0) - 5, gapMidY, getHoleX(rows - 1) + 5, gapMidY);
 
-        // Draw main grid holes
         for (int col = 0; col < rows; col++) {
             for (int letter = 0; letter < cols; letter++) {
                 double hx = getHoleX(col);
@@ -217,30 +195,25 @@ public class Breadboard implements Serializable, Renderable {
             }
         }
 
-        // Bottom power rails
         double bottomPosY = getHoleY(9) + HOLE_SPACING + RAIL_GAP - HOLE_SPACING; // first bottom rail row
         double bottomNegY = bottomPosY + HOLE_SPACING;
         renderPowerRail(gc, bottomPosY, true, bottomPositive);
         renderPowerRail(gc, bottomNegY, false, bottomNegative);
     }
 
-    /** Renders a single horizontal power rail row at the given Y. */
     private void renderPowerRail(GraphicsContext gc, double y, boolean positive, PowerRail rail) {
         double xStart = getHoleX(0);
         double xEnd = getHoleX(rows - 1);
 
-        // Rail line
         gc.setStroke(positive ? Color.rgb(200, 70, 70) : Color.rgb(80, 130, 220));
         gc.setLineWidth(1.5);
         gc.strokeLine(xStart, y, xEnd, y);
 
-        // Rail symbol on the left
         gc.setFill(positive ? Color.rgb(200, 70, 70) : Color.rgb(80, 130, 220));
         gc.setFont(Font.font("Monospaced", 10));
         gc.setTextAlign(TextAlignment.RIGHT);
         gc.fillText(positive ? "+" : "-", xStart - 8, y + 3);
 
-        // Rail holes — also assign canvas positions so they're wireable
         for (int i = 0; i < rows; i++) {
             double hx = getHoleX(i);
             ContactPoint cp = rail.getPoint(i);

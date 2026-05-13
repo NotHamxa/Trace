@@ -11,10 +11,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
-/**
- * A horizontal strip of 8 indicator lights, one per input pin.
- * HIGH → red, LOW → green, FLOATING → dim/off.
- */
 public class LightBar extends OutputComponent {
     private static final int COUNT = 8;
     private static final double SPACING = 20;
@@ -36,7 +32,6 @@ public class LightBar extends OutputComponent {
         }
     }
 
-    /** Null-safe so older serialized circuits (field missing) default to BOTTOM. */
     public PinSide getPinSide() {
         return pinSide == null ? PinSide.BOTTOM : pinSide;
     }
@@ -80,7 +75,6 @@ public class LightBar extends OutputComponent {
 
     @Override
     public void simulate() {
-        // Purely visual — nothing to drive.
     }
 
     @Override
@@ -127,13 +121,11 @@ public class LightBar extends OutputComponent {
         double h = getHeight();
         boolean vert = isVertical();
 
-        // Body dimensions (leave room for pin stubs)
         double bodyW = vert ? w - 10 : w;
         double bodyH = vert ? h : h - 10;
         double bodyX = getPinSide() == PinSide.LEFT ? x + 10 : x;
         double bodyY = getPinSide() == PinSide.TOP ? y + 10 : y;
 
-        // Housing
         gc.setFill(Color.rgb(22, 22, 24));
         gc.fillRoundRect(bodyX, bodyY, bodyW, bodyH, 5, 5);
         gc.setStroke(Color.rgb(80, 80, 85));
@@ -168,27 +160,23 @@ public class LightBar extends OutputComponent {
                     lit = false;
                     break;
             }
-            // Glow halo when lit
             if (lit) {
                 gc.setFill(fill.deriveColor(0, 1, 1, 0.28));
                 double r = LIGHT_RADIUS * 1.9;
                 gc.fillOval(cx - r, cy - r, r * 2, r * 2);
             }
-            // Light body
             gc.setFill(fill);
             gc.fillOval(cx - LIGHT_RADIUS, cy - LIGHT_RADIUS, LIGHT_RADIUS * 2, LIGHT_RADIUS * 2);
             gc.setStroke(Color.rgb(70, 70, 75));
             gc.setLineWidth(0.8);
             gc.strokeOval(cx - LIGHT_RADIUS, cy - LIGHT_RADIUS, LIGHT_RADIUS * 2, LIGHT_RADIUS * 2);
 
-            // Highlight dot
             if (lit) {
                 gc.setFill(Color.rgb(255, 255, 255, 0.35));
                 gc.fillOval(cx - LIGHT_RADIUS * 0.55, cy - LIGHT_RADIUS * 0.55,
                         LIGHT_RADIUS * 0.6, LIGHT_RADIUS * 0.6);
             }
 
-            // Tag label
             String tag = ts[i];
             if (tag != null && !tag.isEmpty()) {
                 gc.setFont(Font.font("SansSerif", 9));
@@ -203,7 +191,6 @@ public class LightBar extends OutputComponent {
             }
         }
 
-        // Render pins
         for (Pin p : getPins()) {
             p.render(gc);
         }

@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Serializes a Circuit to the JSON-on-disk format. */
 public final class CircuitJsonWriter {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
@@ -106,7 +105,6 @@ public final class CircuitJsonWriter {
     }
 
     private static PinRefDTO refForContact(Breadboard bb, int bbIndex, ContactPoint cp) {
-        // Check main grid: grid points expose (row=col, col=letter) — so search by identity.
         int cols = bb.getRows();
         for (int col = 0; col < cols; col++) {
             for (int letter = 0; letter < 10; letter++) {
@@ -115,7 +113,6 @@ public final class CircuitJsonWriter {
                 }
             }
         }
-        // Check the 4 power rails.
         PinRefDTO r = findOnRail(bb.getTopPositive(), bbIndex, "TOP_PLUS", cp);
         if (r != null) return r;
         r = findOnRail(bb.getTopNegative(), bbIndex, "TOP_MINUS", cp);

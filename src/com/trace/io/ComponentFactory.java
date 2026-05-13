@@ -25,13 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Maps concrete Component classes to stable type-string identifiers used in
- * the JSON save file, and handles per-type prop extraction / application.
- *
- * Renaming a component class doesn't break saved files as long as its type
- * string here stays the same.
- */
 public final class ComponentFactory {
     private ComponentFactory() {}
 
@@ -63,7 +56,6 @@ public final class ComponentFactory {
         throw new IllegalArgumentException("Unknown component class: " + c.getClass().getName());
     }
 
-    /** Extracts per-type state (the stuff not captured by id/pos/label/locked). */
     public static Map<String, Object> extractProps(Component c) {
         Map<String, Object> props = new HashMap<>();
         if (c instanceof DIPSwitch d) {
@@ -104,7 +96,6 @@ public final class ComponentFactory {
         return props;
     }
 
-    /** Creates a fresh component from a DTO and applies position / id / label / locked / props. */
     public static Component create(ComponentDTO dto) {
         Component c = instantiate(dto.type(), dto.props());
         c.setId(dto.id());
@@ -194,8 +185,6 @@ public final class ComponentFactory {
             Object label = props.get("label");
             if (label != null) op.setPortLabel(label.toString());
         }
-        // SubCircuitInstance is configured at instantiate() via the library lookup;
-        // nothing additional to apply here.
     }
 
     private static String asString(Map<String, Object> props, String key, String fallback) {

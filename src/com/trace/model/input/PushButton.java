@@ -60,19 +60,16 @@ public class PushButton extends InputComponent {
         double cx = x + w / 2;
         double cy = y + h / 2;
 
-        // Housing — dark chrome
         gc.setFill(Color.rgb(23, 24, 26));
         gc.fillRoundRect(x, y, w, h, 6, 6);
         gc.setStroke(Color.rgb(60, 63, 65));
         gc.setLineWidth(1);
         gc.strokeRoundRect(x, y, w, h, 6, 6);
 
-        // Cap
         double inset = 5;
         double capW = w - inset * 2;
         double capH = h - inset * 2;
         if (pressed) {
-            // Glow halo
             gc.setFill(Color.rgb(219, 92, 92, 0.28));
             gc.fillOval(cx - capW * 0.85, cy - capH * 0.85, capW * 1.7, capH * 1.7);
             gc.setFill(Color.rgb(219, 92, 92));
@@ -84,17 +81,14 @@ public class PushButton extends InputComponent {
         gc.setLineWidth(1);
         gc.strokeOval(x + inset, y + inset, capW, capH);
 
-        // Specular highlight on the cap
         gc.setFill(pressed ? Color.rgb(255, 190, 190, 0.35) : Color.rgb(223, 225, 229, 0.12));
         gc.fillOval(cx - capW * 0.28, cy - capH * 0.34, capW * 0.42, capH * 0.28);
 
-        // Label
         gc.setFill(Color.rgb(134, 138, 145));
         gc.setFont(Font.font("Monospaced", 9));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText("BTN", x + w / 2, y + h + 11);
 
-        // Output pin
         getPin("OUT").render(gc);
     }
 

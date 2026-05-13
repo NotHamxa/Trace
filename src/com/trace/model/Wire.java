@@ -35,12 +35,10 @@ public class Wire implements Serializable, Renderable {
         return endPin;
     }
 
-    /** Reassigns the start pin — used when rerouting by dragging a wire endpoint. */
     public void setStartPin(Pin startPin) {
         this.startPin = startPin;
     }
 
-    /** Reassigns the end pin — used when rerouting by dragging a wire endpoint. */
     public void setEndPin(Pin endPin) {
         this.endPin = endPin;
     }
@@ -77,7 +75,6 @@ public class Wire implements Serializable, Renderable {
         LogicState startState = startPin.getState();
         LogicState endState = endPin.getState();
 
-        // Only propagate non-floating states; prefer the side that has a definite value
         if (startState != LogicState.FLOATING && endState == LogicState.FLOATING) {
             endPin.setState(startState);
             currentState = startState;
@@ -85,7 +82,6 @@ public class Wire implements Serializable, Renderable {
             startPin.setState(endState);
             currentState = endState;
         } else if (startState != LogicState.FLOATING) {
-            // Both non-floating: prefer output/power/ground pin as driver
             boolean startDrives = startPin.getType() == PinType.OUTPUT
                     || startPin.getType() == PinType.POWER
                     || startPin.getType() == PinType.GROUND;
@@ -134,7 +130,6 @@ public class Wire implements Serializable, Renderable {
             gc.setLineDashes();
         }
 
-        // Draw line through waypoints
         gc.beginPath();
         gc.moveTo(startX, startY);
         for (double[] wp : waypoints) {
@@ -143,10 +138,8 @@ public class Wire implements Serializable, Renderable {
         gc.lineTo(endX, endY);
         gc.stroke();
 
-        // Reset dashes
         gc.setLineDashes();
 
-        // Draw connection dots at endpoints.
         Color dotColor = gc.getStroke() instanceof Color ? (Color) gc.getStroke() : Color.BLACK;
         gc.setFill(dotColor);
         gc.fillOval(startX - 3, startY - 3, 6, 6);
@@ -157,10 +150,6 @@ public class Wire implements Serializable, Renderable {
         return waypoints;
     }
 
-    /**
-     * Returns the index of the waypoint (pivot) nearest to (px, py) within
-     * {@code threshold} pixels, or -1 if no waypoint is within range.
-     */
     public int findWaypointIndex(double px, double py, double threshold) {
         int bestIdx = -1;
         double bestDistSq = threshold * threshold;
@@ -177,14 +166,12 @@ public class Wire implements Serializable, Renderable {
         return bestIdx;
     }
 
-    /** Removes the waypoint at {@code index}. */
     public void removeWaypoint(int index) {
         if (index >= 0 && index < waypoints.size()) {
             waypoints.remove(index);
         }
     }
 
-    /** Insert a pivot point on the segment closest to (px,py). */
     public void addWaypointAt(double px, double py) {
         List<double[]> allPoints = new ArrayList<>();
         allPoints.add(new double[]{startPin.getX(), startPin.getY()});
@@ -206,7 +193,6 @@ public class Wire implements Serializable, Renderable {
     }
 
     public boolean isNear(double px, double py, double threshold) {
-        // Check distance from point to each line segment
         double sx = startPin.getX(), sy = startPin.getY();
 
         List<double[]> allPoints = new ArrayList<>();

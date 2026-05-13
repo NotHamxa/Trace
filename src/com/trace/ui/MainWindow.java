@@ -60,7 +60,6 @@ public class MainWindow {
         this(initialCircuit, sourceFile, sharedStatusBar, false, null, null);
     }
 
-    /** Sub-circuit editor variant. {@code id}/{@code name} may be null for a new definition. */
     public MainWindow(Circuit initialCircuit, StatusBar sharedStatusBar,
                       String subCircuitId, String subCircuitName) {
         this(initialCircuit, null, sharedStatusBar, true, subCircuitId, subCircuitName);
@@ -77,18 +76,15 @@ public class MainWindow {
         root = new BorderPane();
         root.setStyle("-fx-background-color: " + Theme.BG_EDITOR + ";");
 
-        // Create UI components
         canvasView = new CanvasView(circuit);
         propertiesPanel = new PropertiesPanel();
         statusBar = sharedStatusBar != null ? sharedStatusBar : new StatusBar();
         toolbar = new Toolbar();
 
-        // Controllers
         drawController = new DrawController(circuit, canvasView);
         simulateController = new SimulateController(circuit);
         fileController = new FileController(null); // Stage set later
 
-        // Toolbox - when component selected, start placement
         toolboxPanel = new ToolboxPanel(
                 component -> {
                     if (currentMode == AppMode.DRAW) {
@@ -113,7 +109,6 @@ public class MainWindow {
                 subCircuitMode
         );
 
-        // Canvas callbacks
         canvasView.setOnComponentSelected(comp -> {
             if (comp == null && canvasView.getSelectedWire() != null) {
                 propertiesPanel.showWireProperties(canvasView.getSelectedWire());
@@ -124,7 +119,6 @@ public class MainWindow {
         canvasView.setOnStatusMessage(msg -> statusBar.setStatus(msg));
         canvasView.setOnWarningMessage(msg -> statusBar.setWarning(msg));
         canvasView.setOnToolFinished(() -> toolboxPanel.revertToSelect());
-        // Snapshot current circuit before any mutation → undo stack, and mark dirty.
         canvasView.setOnBeforeMutation(this::captureUndo);
         drawController.setOnBeforeMutation(this::captureUndo);
         propertiesPanel.setOnLockToggled(canvasView::setLockOnSelection);
@@ -133,7 +127,6 @@ public class MainWindow {
         propertiesPanel.setOnPinSideChanged(canvasView::setPinSideOnSelection);
         propertiesPanel.setOnViewSubCircuit(this::openSubCircuitViewer);
 
-        // Toolbar callbacks
         toolbar.setOnModeChange(this::switchMode);
         toolbar.setOnNew(this::newCircuitWithPrompt);
         toolbar.setOnSave(this::saveCurrent);
@@ -144,14 +137,11 @@ public class MainWindow {
         toolbar.setOnCloseProject(this::closeProject);
         toolbar.setSubCircuitMode(subCircuitMode);
 
-        // Layout
         root.setTop(toolbar);
         root.setLeft(toolboxPanel);
         root.setCenter(canvasView);
         root.setRight(propertiesPanel);
-        // statusBar is shared via App and lives outside this BorderPane.
 
-        // Keyboard shortcuts
         root.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
         root.setFocusTraversable(true);
 
@@ -159,9 +149,6 @@ public class MainWindow {
         canvasView.redraw();
     }
 
-    // ---------- Undo / redo ----------
-
-    /** Snapshots the current circuit before a mutation lands. */
     private void captureUndo() {
         undoManager.capture(circuit);
         circuit.setModified(true);
@@ -190,9 +177,6 @@ public class MainWindow {
         toolbar.setUndoRedoEnabled(undoManager.canUndo(), undoManager.canRedo());
     }
 
-    // ---------- File actions with unsaved-changes prompts ----------
-
-    /** Prompts to save if dirty; returns false if the user cancels. */
     public boolean confirmDiscardChanges() {
         if (!circuit.isModified()) return true;
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -206,14 +190,9 @@ public class MainWindow {
         Optional<ButtonType> result = alert.showAndWait();
         if (!result.isPresent() || result.get() == cancel) return false;
         if (result.get() == discard) return true;
-        // Save
         return saveCurrent();
     }
 
-    /**
-     * Saves to the current file if there is one, otherwise prompts. Returns
-     * true iff the save completed (caller uses this to know if it can proceed).
-     */
     private boolean saveCurrent() {
         if (subCircuitMode) return saveSubCircuit();
         File target;
@@ -230,10 +209,6 @@ public class MainWindow {
         return true;
     }
 
-    /**
-     * Saves the current circuit to the sub-circuit library. Prompts for id +
-     * name on first save; re-uses them on subsequent saves.
-     */
     private boolean saveSubCircuit() {
         boolean hasPort = circuit.getComponents().stream().anyMatch(c ->
                 c instanceof com.trace.model.ports.InputPort ||
@@ -247,8 +222,6 @@ public class MainWindow {
             return false;
         }
 
-        // Every port must carry a non-default, non-blank label so the outer
-        // box has meaningful pin names.
         java.util.List<String> unlabeled = new java.util.ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
         java.util.List<String> dupes = new java.util.ArrayList<>();
@@ -356,8 +329,6 @@ public class MainWindow {
         Circuit loaded = fileController.load();
         if (loaded != null) {
             circuit = loaded;
-            // We don't know the exact File chosen (FileController.load uses a
-            // dialog). Use a two-step: delegate to the public variant.
             undoManager.clear();
             currentFile = null; // save will prompt next time
             updateCircuitReferences();
@@ -377,10 +348,6 @@ public class MainWindow {
         statusBar.setWarning("");
     }
 
-    /**
-     * Pops up a read-only window showing the internals of a sub-circuit
-     * instance. User can pan/zoom but not edit anything.
-     */
     private void openSubCircuitViewer(com.trace.model.subcircuit.SubCircuitInstance sci) {
         if (sci == null || sci.isBroken() || sci.getDefinition() == null) return;
         Circuit inner = sci.getDefinition().getInner();
@@ -405,10 +372,7 @@ public class MainWindow {
         if (onCloseProject != null) onCloseProject.run();
     }
 
-    // ---------- Mode switching (unchanged logic) ----------
-
     private void switchMode(AppMode mode) {
-        // Tear down test-mode split pane when leaving TEST
         if (currentMode == AppMode.TEST && mode != AppMode.TEST) {
             if (testSplit != null) {
                 testSplit.getItems().clear();
@@ -502,7 +466,6 @@ public class MainWindow {
             e.consume();
         } else if (!e.isControlDown() && !e.isAltDown() && !e.isMetaDown()
                 && e.getCode() == KeyCode.L) {
-            // Lock/unlock the current selection — works in either mode.
             if (canvasView.toggleLockOnSelection()) {
                 if (canvasView.getSelectedComponent() != null) {
                     propertiesPanel.showProperties(canvasView.getSelectedComponent());
@@ -513,7 +476,6 @@ public class MainWindow {
             }
         } else if (!e.isControlDown() && !e.isAltDown() && !e.isMetaDown()
                 && currentMode == AppMode.DRAW) {
-            // Quick tool-swap shortcuts (draw mode only, no modifier keys).
             switch (e.getCode()) {
                 case S:
                     toolboxPanel.activateSelect();

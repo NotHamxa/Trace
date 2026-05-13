@@ -12,7 +12,6 @@ public class NORGate7402 extends ICChip {
 
     @Override
     protected PinType getDefaultPinType(int pinNumber) {
-        // Real 7402: outputs at pins 1, 4, 10, 13
         if (pinNumber == 1 || pinNumber == 4 || pinNumber == 10 || pinNumber == 13) {
             return PinType.OUTPUT;
         }
@@ -21,11 +20,6 @@ public class NORGate7402 extends ICChip {
 
     @Override
     protected void computeGates() {
-        // Real 7402 pinout: output first, then two inputs
-        // Gate 1: Y=1, A=2, B=3
-        // Gate 2: Y=4, A=5, B=6
-        // Gate 3: Y=10, A=8, B=9
-        // Gate 4: Y=13, A=11, B=12
         applyGate("2", "3", "1");
         applyGate("5", "6", "4");
         applyGate("8", "9", "10");

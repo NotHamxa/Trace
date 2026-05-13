@@ -12,7 +12,6 @@ public class NOTGate7404 extends ICChip {
 
     @Override
     protected PinType getDefaultPinType(int pinNumber) {
-        // NOT gate: 6 inverters, outputs at pins 2, 4, 6, 8, 10, 12
         if (pinNumber == 2 || pinNumber == 4 || pinNumber == 6
                 || pinNumber == 8 || pinNumber == 10 || pinNumber == 12) {
             return PinType.OUTPUT;

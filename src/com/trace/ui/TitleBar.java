@@ -16,10 +16,6 @@ import javafx.stage.Stage;
 
 import java.util.function.BooleanSupplier;
 
-/**
- * Custom window chrome drawn inside the scene so we can theme it. The native
- * title bar is hidden via {@code StageStyle.UNDECORATED} in App.
- */
 public class TitleBar extends HBox {
     private static final double HEIGHT = 34;
 
@@ -52,7 +48,6 @@ public class TitleBar extends HBox {
             logoView.setSmooth(true);
             logoView.setPreserveRatio(true);
         } catch (Exception e) {
-            // Icon missing — title bar drops the badge.
         }
 
         titleLabel = new Label("Trace");
@@ -76,7 +71,6 @@ public class TitleBar extends HBox {
         }
         getChildren().addAll(titleLabel, spacer, minBtn, maxBtn, closeBtn);
 
-        // Drag to move the window (except when maximized)
         setOnMousePressed(e -> {
             if (e.getButton() != MouseButton.PRIMARY) return;
             dragOffsetX = e.getScreenX() - stage.getX();
@@ -88,7 +82,6 @@ public class TitleBar extends HBox {
             stage.setX(e.getScreenX() - dragOffsetX);
             stage.setY(e.getScreenY() - dragOffsetY);
         });
-        // Double-click toggles maximize
         setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
                 stage.setMaximized(!stage.isMaximized());

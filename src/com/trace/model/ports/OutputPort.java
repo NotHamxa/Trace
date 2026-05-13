@@ -9,11 +9,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
-/**
- * Marks an external output of a sub-circuit. Placed inside the inner circuit
- * while designing a sub-circuit. Whatever drives this port's input pin inside
- * the inner circuit is what the outer box exposes on its matching output pin.
- */
 public class OutputPort extends Component {
     private String portLabel;
 
@@ -30,14 +25,12 @@ public class OutputPort extends Component {
     public String getPortLabel() { return portLabel; }
     public void setPortLabel(String label) { this.portLabel = label == null ? "" : label; }
 
-    /** Called by SubCircuitInstance after inner simulate(). */
     public LogicState readState() {
         return getPin("IN").getState();
     }
 
     @Override
     public void simulate() {
-        // Nothing to drive — state flows IN via whatever inner component wires here.
     }
 
     @Override
@@ -61,7 +54,6 @@ public class OutputPort extends Component {
         String label = portLabel == null || portLabel.isEmpty() ? "OUT" : portLabel;
         gc.fillText(label, x + w / 2, y + h / 2 + 4);
 
-        // Arrow hint pointing left (signal flows in)
         gc.setStroke(Color.rgb(230, 160, 80));
         gc.setLineWidth(1.5);
         gc.strokeLine(x + 2, y + h / 2, x + 6, y + h / 2 - 3);

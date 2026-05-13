@@ -31,12 +31,10 @@ public class Ground extends PowerComponent {
         double h = getHeight();
         double cx = x + w / 2;
 
-        // Wire from pin down — light silver so it reads on dark bg
         gc.setStroke(Color.rgb(200, 203, 208));
         gc.setLineWidth(2);
         gc.strokeLine(cx, y, cx, y + 8);
 
-        // Ground symbol (3 horizontal lines, decreasing width) — light gray
         gc.setStroke(Color.rgb(223, 225, 229));
         gc.setLineWidth(2.5);
         gc.strokeLine(cx - 14, y + 10, cx + 14, y + 10);
@@ -45,13 +43,11 @@ public class Ground extends PowerComponent {
         gc.setLineWidth(1.5);
         gc.strokeLine(cx - 4, y + 22, cx + 4, y + 22);
 
-        // Label
         gc.setFill(Color.rgb(134, 138, 145));
         gc.setFont(Font.font("Monospaced", 9));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText("GND", cx, y + h + 5);
 
-        // Pin
         getPin("GND").render(gc);
     }
 

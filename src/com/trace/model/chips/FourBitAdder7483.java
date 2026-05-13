@@ -4,19 +4,6 @@ import com.trace.model.*;
 
 import java.util.List;
 
-/**
- * 7483: 4-bit binary full adder with fast carry.
- *
- * 16-pin DIP pinout:
- *   1  A4      9  S1
- *   2  S3      10 A1
- *   3  A3      11 B1
- *   4  B3      12 GND
- *   5  VCC     13 C0 (carry in)
- *   6  S2      14 C4 (carry out)
- *   7  B2      15 B4
- *   8  A2      16 S4
- */
 public class FourBitAdder7483 extends ICChip {
 
     public FourBitAdder7483() {
@@ -25,7 +12,6 @@ public class FourBitAdder7483 extends ICChip {
 
     @Override
     protected PinType getDefaultPinType(int pinNumber) {
-        // Sum outputs: 9 (S1), 6 (S2), 2 (S3), 16 (S4), and carry out 14 (C4)
         if (pinNumber == 9 || pinNumber == 6 || pinNumber == 2
                 || pinNumber == 16 || pinNumber == 14) {
             return PinType.OUTPUT;

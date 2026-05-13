@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Circuit implements Serializable {
-    // kept for backward-compatible deserialization of old .trc files
     @SuppressWarnings("unused")
     private Breadboard breadboard;
     private List<Breadboard> breadboards;
@@ -19,9 +18,7 @@ public class Circuit implements Serializable {
     private String name;
     private boolean modified;
 
-    /** Saved test-case input rows (each entry is one row of input LogicStates). */
     private List<LogicState[]> savedTestInputs;
-    /** Saved test-case expected output rows (null elements = don't-care). */
     private List<LogicState[]> savedTestExpected;
 
     public Circuit() {
@@ -33,12 +30,10 @@ public class Circuit implements Serializable {
         this.modified = false;
     }
 
-    /** Replaces the breadboard list wholesale — used by the JSON loader. */
     public void replaceBreadboards(List<Breadboard> bbs) {
         this.breadboards = new ArrayList<>(bbs);
     }
 
-    // === Breadboard Management ===
     public void addBreadboard(Breadboard bb) {
         breadboards.add(bb);
         modified = true;
@@ -51,7 +46,6 @@ public class Circuit implements Serializable {
         }
     }
 
-    // === Component Management ===
     public void addComponent(Component c) {
         components.add(c);
         c.setPlaced(true);
@@ -60,7 +54,6 @@ public class Circuit implements Serializable {
 
     public void removeComponent(Component c) {
         components.remove(c);
-        // Remove all wires connected to this component
         List<Wire> toRemove = new ArrayList<>();
         for (Wire w : wires) {
             if (w.getStartPin().getOwner() == c || w.getEndPin().getOwner() == c) {
@@ -71,7 +64,6 @@ public class Circuit implements Serializable {
         modified = true;
     }
 
-    // === Wire Management ===
     public void addWire(Wire wire) {
         wires.add(wire);
         modified = true;
@@ -82,27 +74,21 @@ public class Circuit implements Serializable {
         modified = true;
     }
 
-    /** Resets all pin/net/wire states to FLOATING (used when leaving simulate mode). */
     public void resetStates() {
         resetAllNets();
     }
 
-    // === Simulation ===
     public void simulate() {
-        // 1. Reset all nets to FLOATING
         resetAllNets();
 
-        // 2. Simulate power components first
         for (Component c : components) {
             if (c instanceof PowerComponent) {
                 c.simulate();
             }
         }
 
-        // 3. Propagate through wires and nets
         propagateNets();
 
-        // 4. Simulate input components (interactive inputs + sub-circuit input ports)
         for (Component c : components) {
             if (c instanceof InputComponent
                     || c instanceof com.trace.model.ports.InputPort) {
@@ -110,10 +96,8 @@ public class Circuit implements Serializable {
             }
         }
 
-        // 5. Propagate again after inputs
         propagateNets();
 
-        // 6. Simulate ICs iteratively
         boolean changed = true;
         int maxIterations = 20;
         int iteration = 0;
@@ -134,7 +118,6 @@ public class Circuit implements Serializable {
         }
 
         if (iteration >= maxIterations) {
-            // Identify which ICs are still oscillating
             StringBuilder detail = new StringBuilder("Unstable feedback loop detected. ");
             detail.append("The following ICs did not converge after ")
                   .append(maxIterations).append(" iterations: ");
@@ -157,14 +140,12 @@ public class Circuit implements Serializable {
             throw new OscillationException(detail.toString());
         }
 
-        // 7. Simulate output components
         for (Component c : components) {
             if (c instanceof OutputComponent) {
                 c.simulate();
             }
         }
 
-        // 8. Simulate passive components
         for (Component c : components) {
             if (c instanceof PassiveComponent) {
                 c.simulate();
@@ -175,7 +156,6 @@ public class Circuit implements Serializable {
     }
 
     private void resetAllNets() {
-        // 1. Reset all nets and every pin reachable from them
         for (Breadboard bb : breadboards) {
             for (Net net : bb.getAllNets()) {
                 net.setState(LogicState.FLOATING);
@@ -184,26 +164,21 @@ public class Circuit implements Serializable {
                 }
             }
         }
-        // 2. Reset all component pins
         for (Component c : components) {
             for (Pin p : c.getPins()) {
                 p.setState(LogicState.FLOATING);
             }
         }
-        // 3. Reset wire display states
         for (Wire w : wires) {
             w.resetState();
         }
     }
 
     private void propagateNets() {
-        // Run multiple passes until the signal settles through all hops
         for (int pass = 0; pass < 5; pass++) {
-            // Propagate through wires
             for (Wire w : wires) {
                 w.propagate();
             }
-            // Propagate through breadboard nets
             for (Breadboard bb : breadboards) {
                 bb.propagateAllNets();
             }
@@ -229,12 +204,10 @@ public class Circuit implements Serializable {
         return false;
     }
 
-    // === Getters ===
     public List<Breadboard> getBreadboards() {
         return breadboards;
     }
 
-    /** Returns the first (default) breadboard for backward compatibility. */
     public Breadboard getBreadboard() {
         return breadboards.get(0);
     }
@@ -276,10 +249,8 @@ public class Circuit implements Serializable {
         this.savedTestExpected = expected;
     }
 
-    // === Serialization ===
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         ois.defaultReadObject();
-        // Migrate old single-breadboard files
         if (breadboards == null) {
             breadboards = new ArrayList<>();
             if (breadboard != null) {
@@ -291,7 +262,6 @@ public class Circuit implements Serializable {
         }
     }
 
-    // === Save/Load (JSON) ===
     public void saveToFile(File file) throws IOException {
         com.trace.io.CircuitJsonWriter.write(this, file);
     }

@@ -5,10 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.prefs.Preferences;
 
-/**
- * Persists a short MRU list of project files using java.util.prefs so we
- * don't have to manage a config directory or file format ourselves.
- */
 public final class RecentProjects {
     private static final String KEY_PREFIX = "recent_";
     private static final int MAX = 10;
@@ -27,7 +23,6 @@ public final class RecentProjects {
         return list;
     }
 
-    /** Adds `file` to the front of the MRU list (dedupes and trims to MAX). */
     public static void add(File file) {
         if (file == null) return;
         List<File> list = load();

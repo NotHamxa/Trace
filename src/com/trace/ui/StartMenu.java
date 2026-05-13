@@ -32,12 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * JetBrains-style launcher: sidebar with Projects / Demos, main area swaps
- * between a recent-projects list and a pre-built demo list.
- */
 public class StartMenu {
-    // Palette pulled from the shared Theme
     private static final String BG_SIDEBAR   = Theme.BG_CHROME;
     private static final String BG_MAIN      = Theme.BG_EDITOR;
     private static final String BORDER       = Theme.BORDER_STRONG;
@@ -55,24 +50,19 @@ public class StartMenu {
 
     private final BorderPane root;
 
-    // Nav items
     private Label projectsNav;
     private Label demosNav;
     private Label subcircuitsNav;
 
-    // Main panels
     private Pane projectsPanel;
     private Pane demosPanel;
     private Pane subcircuitsPanel;
 
-    // Projects panel state
     private ListView<File> recentList;
     private TextField searchField;
 
-    // Subcircuits panel state
     private ListView<SubCircuitDefinition> subcircuitList;
 
-    // Callbacks
     private Runnable onNewProject;
     private Consumer<File> onOpenProject;
     private Consumer<Circuit> onOpenDemo;
@@ -91,8 +81,6 @@ public class StartMenu {
         root.setLeft(buildSidebar());
         showProjects();
     }
-
-    // ---------- sidebar ----------
 
     private VBox buildSidebar() {
         Label appName = new Label("Trace");
@@ -176,8 +164,6 @@ public class StartMenu {
         refreshSubcircuits();
         root.setCenter(subcircuitsPanel);
     }
-
-    // ---------- projects panel ----------
 
     private VBox buildProjectsPanel() {
         VBox panel = new VBox();
@@ -293,8 +279,6 @@ public class StartMenu {
         };
     }
 
-    // ---------- demos panel ----------
-
     private VBox buildDemosPanel() {
         VBox panel = new VBox();
         panel.setStyle("-fx-background-color: " + BG_MAIN + ";");
@@ -379,8 +363,6 @@ public class StartMenu {
             }
         };
     }
-
-    // ---------- subcircuits panel ----------
 
     private VBox buildSubcircuitsPanel() {
         VBox panel = new VBox();
@@ -537,8 +519,6 @@ public class StartMenu {
         subcircuitList.getItems().setAll(SubCircuitLibrary.all());
     }
 
-    // ---------- shared helpers ----------
-
     private static void applyRowStyle(ListCell<?> cell, boolean selected, boolean hover) {
         String bg;
         if (selected) bg = ROW_SELECT;
@@ -578,8 +558,6 @@ public class StartMenu {
         b.setOnMouseExited(e -> b.setStyle(base));
         return b;
     }
-
-    // ---------- filtering + API ----------
 
     private void applyFilter(String query) {
         List<File> all = RecentProjects.load();

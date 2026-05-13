@@ -23,8 +23,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class ToolboxPanel extends ScrollPane {
-    // Base styles for tool buttons — one is the idle state, the other is the
-    // highlight applied to whichever button represents the currently active tool.
     private static final String STYLE_IDLE =
             "-fx-background-color: " + Theme.BTN_BG + "; -fx-text-fill: " + Theme.TEXT_PRIMARY + "; -fx-font-size: 11; " +
             "-fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 10; " +
@@ -45,18 +43,14 @@ public class ToolboxPanel extends ScrollPane {
     private Runnable onAddBreadboard;
     private VBox content;
 
-    // Active-tool tracking — so we can visually mark the last-picked tool and
-    // revert its styling when a different one takes over.
     private Button activeButton;
     private Button selectButton;
     private Button redWireButton;
     private Button blackWireButton;
     private Button whiteWireButton;
 
-    // The VBox that currently receives new items (the body of the latest category).
     private VBox currentCategoryBody;
 
-    // Kept as a field so "Save as Sub-Circuit" can refresh the list dynamically.
     private VBox subCircuitsBody;
 
     public ToolboxPanel(Consumer<Component> onComponentSelected,
@@ -115,7 +109,6 @@ public class ToolboxPanel extends ScrollPane {
             addDraggableItem("Input Port", () -> new InputPort("IN"));
             addDraggableItem("Output Port", () -> new OutputPort("OUT"));
         } else {
-            // "Sub-Circuits" — dynamically populated from the user library.
             addCategoryHeader("Sub-Circuits");
             subCircuitsBody = currentCategoryBody;
             refreshSubCircuits();
@@ -143,7 +136,6 @@ public class ToolboxPanel extends ScrollPane {
         addCategory("Board");
         addToolButton("Breadboard", () -> { if (onAddBreadboard != null) onAddBreadboard.run(); });
 
-        // Start with Select highlighted so the user can see the default tool.
         setActive(selectButton);
 
         setContent(content);
@@ -173,7 +165,6 @@ public class ToolboxPanel extends ScrollPane {
         addCategoryHeader(name);
     }
 
-    /** Same as {@link #addCategory} but returns the header label. */
     private Label addCategoryHeader(String name) {
         VBox body = new VBox();
         body.setSpacing(4);
@@ -195,7 +186,6 @@ public class ToolboxPanel extends ScrollPane {
         return header;
     }
 
-    /** Rebuilds the Sub-Circuits category from the on-disk library. */
     public void refreshSubCircuits() {
         if (subCircuitsBody == null) return;
         SubCircuitLibrary.reload();
@@ -236,7 +226,6 @@ public class ToolboxPanel extends ScrollPane {
         btn.setStyle(STYLE_IDLE);
     }
 
-    /** Marks a button as the active tool — restyles the old and new buttons. */
     private void setActive(Button btn) {
         if (activeButton != null && activeButton != btn) {
             activeButton.setStyle(STYLE_IDLE);
@@ -247,33 +236,26 @@ public class ToolboxPanel extends ScrollPane {
         }
     }
 
-    // --- Public API used by keyboard shortcuts + canvas state changes --------
-
-    /** Activates the Select tool (clears any active placement/wire tool). */
     public void activateSelect() {
         setActive(selectButton);
         onSelectMode.run();
     }
 
-    /** Activates the red wire tool. */
     public void activateRedWire() {
         setActive(redWireButton);
         onWireToolSelected.accept(Color.rgb(220, 50, 50));
     }
 
-    /** Activates the black wire tool. */
     public void activateBlackWire() {
         setActive(blackWireButton);
         onWireToolSelected.accept(Color.rgb(20, 20, 20));
     }
 
-    /** Activates the white wire tool. */
     public void activateWhiteWire() {
         setActive(whiteWireButton);
         onWireToolSelected.accept(Color.rgb(240, 240, 240));
     }
 
-    /** Called by the canvas after a one-shot placement finishes/cancels. */
     public void revertToSelect() {
         setActive(selectButton);
     }

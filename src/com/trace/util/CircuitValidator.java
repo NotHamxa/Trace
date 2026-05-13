@@ -11,7 +11,6 @@ public class CircuitValidator {
     public static List<String> validate(Circuit circuit) {
         List<String> warnings = new ArrayList<>();
 
-        // 1. Check for short circuits
         for (Breadboard bb : circuit.getBreadboards()) {
             for (Net net : bb.getAllNets()) {
                 boolean hasHigh = false, hasLow = false;
@@ -25,7 +24,6 @@ public class CircuitValidator {
             }
         }
 
-        // 2. Check for floating IC inputs
         for (Component c : circuit.getComponents()) {
             if (c instanceof ICChip) {
                 for (Pin p : c.getPins()) {
@@ -36,7 +34,6 @@ public class CircuitValidator {
             }
         }
 
-        // 3. Check for unpowered ICs
         for (Component c : circuit.getComponents()) {
             if (c instanceof ICChip) {
                 Pin vcc = c.getPin("14");

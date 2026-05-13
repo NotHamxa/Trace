@@ -34,7 +34,6 @@ public class DrawController {
         Component selected = canvasView.getSelectedComponent();
         if (selected != null) {
             if (onBeforeMutation != null) onBeforeMutation.run();
-            // Free any breadboard holes this component occupied
             for (Pin p : selected.getPins()) {
                 for (Breadboard bb : circuit.getBreadboards()) {
                     for (ContactPoint cp : bb.getAllContactPoints()) {

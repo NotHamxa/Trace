@@ -17,7 +17,8 @@ public class Toolbar extends HBox {
     private ToggleButton simBtn;
     private ToggleButton testBtn;
     private Button newBtn, saveBtn, loadBtn, clearBtn;
-    private Button undoBtn, redoBtn, menuBtn;
+    private Button undoBtn, redoBtn, menuBtn, settingsBtn;
+    private final SettingsPopover settingsPopover = new SettingsPopover();
     private Consumer<AppMode> onModeChange;
     private Runnable onNew, onSave, onLoad, onClear;
     private Runnable onUndo, onRedo, onCloseProject;
@@ -29,7 +30,6 @@ public class Toolbar extends HBox {
         setStyle("-fx-background-color: " + Theme.BG_CHROME +
                 "; -fx-border-color: transparent transparent " + Theme.BORDER_SOFT + " transparent;");
 
-        // Mode toggles
         ToggleGroup modeGroup = new ToggleGroup();
 
         drawBtn = new ToggleButton("Draw Mode");
@@ -66,7 +66,6 @@ public class Toolbar extends HBox {
         Separator sep1 = new Separator();
         sep1.setOrientation(javafx.geometry.Orientation.VERTICAL);
 
-        // File operations
         newBtn = createButton("New");
         saveBtn = createButton("Save");
         loadBtn = createButton("Load");
@@ -74,7 +73,6 @@ public class Toolbar extends HBox {
         Separator sep2 = new Separator();
         sep2.setOrientation(javafx.geometry.Orientation.VERTICAL);
 
-        // Undo / Redo
         undoBtn = createButton("Undo");
         redoBtn = createButton("Redo");
         undoBtn.setDisable(true);
@@ -90,16 +88,17 @@ public class Toolbar extends HBox {
 
         menuBtn = createButton("Menu");
 
+        settingsBtn = createButton("Settings");
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Title
         javafx.scene.control.Label titleLabel = new javafx.scene.control.Label("Trace");
         titleLabel.setStyle("-fx-text-fill: " + Theme.TEXT_SECONDARY +
                 "; -fx-font-size: 13; -fx-font-style: italic;");
 
         getChildren().addAll(drawBtn, simBtn, testBtn, sep1, newBtn, saveBtn, loadBtn,
-                sep2, undoBtn, redoBtn, sep3, clearBtn, sep4, menuBtn, spacer, titleLabel);
+                sep2, undoBtn, redoBtn, sep3, clearBtn, sep4, menuBtn, settingsBtn, spacer, titleLabel);
 
         newBtn.setOnAction(e -> { if (onNew != null) onNew.run(); });
         saveBtn.setOnAction(e -> { if (onSave != null) onSave.run(); });
@@ -108,12 +107,9 @@ public class Toolbar extends HBox {
         undoBtn.setOnAction(e -> { if (onUndo != null) onUndo.run(); });
         redoBtn.setOnAction(e -> { if (onRedo != null) onRedo.run(); });
         menuBtn.setOnAction(e -> { if (onCloseProject != null) onCloseProject.run(); });
+        settingsBtn.setOnAction(e -> settingsPopover.showUnder(settingsBtn));
     }
 
-    /**
-     * Reshapes the toolbar for sub-circuit editing: hides the Load and
-     * "Save as Sub-Circuit" buttons (both meaningless in that mode).
-     */
     public void setSubCircuitMode(boolean subCircuit) {
         loadBtn.setVisible(!subCircuit);
         loadBtn.setManaged(!subCircuit);
@@ -121,7 +117,6 @@ public class Toolbar extends HBox {
         simBtn.setManaged(!subCircuit);
     }
 
-    /** Enables/disables the undo/redo buttons (host should call this on state change). */
     public void setUndoRedoEnabled(boolean canUndo, boolean canRedo) {
         undoBtn.setDisable(!canUndo);
         redoBtn.setDisable(!canRedo);
